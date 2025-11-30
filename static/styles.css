@@ -1,0 +1,387 @@
+/* ===========================================================
+   COMET RED/BLACK THEME — FULL CLEAN, FIXED FINAL VERSION
+   =========================================================== */
+
+/* =======================================
+   Animated Background
+   ======================================= */
+[data-testid="stAppViewContainer"] {
+    background: linear-gradient(-45deg, #000000, #1a0000, #8b0000, #300000);
+    background-size: 400% 400%;
+    animation: bgAnimation 12s ease infinite;
+}
+@keyframes bgAnimation {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* =======================================
+   Floating Particles
+   ======================================= */
+[data-testid="stAppViewContainer"]::before {
+    content: "";
+    position: fixed;
+    width: 100%; height: 100%;
+    top: 0; left: 0;
+    pointer-events: none;
+    z-index: -1;
+    background-image:
+        radial-gradient(circle, rgba(255,0,0,0.6) 1px, transparent 1px),
+        radial-gradient(circle, rgba(255,0,0,0.3) 1px, transparent 1px);
+    background-size: 12px 12px, 18px 18px;
+    opacity: 0.23;
+    animation: particleFloat 25s linear infinite;
+}
+@keyframes particleFloat {
+    0% { transform: translate(0,0); }
+    50% { transform: translate(40px, -50px); }
+    100% { transform: translate(0,0); }
+}
+
+/* =======================================
+   Global Text — White
+   ======================================= */
+body, p, span, div, label {
+    color: #f0f0f0 !important;
+}
+
+/* =======================================
+   Headings
+   ======================================= */
+h1, h2, h3 {
+    color: #ff002f !important;
+    text-shadow: 0 0 12px rgba(255,0,50,0.5);
+}
+
+/* =======================================
+   Sidebar
+   ======================================= */
+section[data-testid="stSidebar"] {
+    background: rgba(0,0,0,0.65) !important;
+    border-right: 1px solid rgba(255,0,0,0.25);
+    backdrop-filter: blur(12px);
+}
+section[data-testid="stSidebar"] * {
+    color: #f0f0f0 !important;
+}
+
+/* =======================================
+   Cards
+   ======================================= */
+.card {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,0,0,0.45);
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 1.3rem;
+    backdrop-filter: blur(6px);
+}
+.card-title {
+    color: #ff335c !important;
+}
+.card-value {
+    font-size: 1.7rem;
+    font-weight: bold;
+}
+
+/* =======================================
+   Buttons
+   ======================================= */
+.stButton > button {
+    background: linear-gradient(135deg, #ff003c, #b8002c);
+    color: white !important;
+    border-radius: 40px;
+    padding: 0.55rem 1.5rem;
+    font-weight: 600;
+    box-shadow: 0 0 12px rgba(255,0,60,0.5);
+    border: none;
+}
+.stButton > button:hover {
+    transform: scale(1.06);
+    box-shadow: 0 0 22px rgba(255,0,60,0.8);
+}
+
+/* =======================================
+   Tabs
+   ======================================= */
+.stTabs [data-baseweb="tab"] {
+    background: rgba(255,255,255,0.06);
+    border-radius: 12px;
+    border: 1px solid rgba(255,0,0,0.35);
+    color: white !important;
+}
+.stTabs [data-baseweb="tab"]:hover {
+    background: rgba(255,0,60,0.25);
+}
+
+/* =======================================
+   Dataframe Tables
+   ======================================= */
+[data-testid="stDataFrame"] {
+    background: rgba(30,30,30,0.7) !important;
+    border-radius: 10px !important;
+}
+
+/* ===========================================================
+   TEXT INPUTS & SELECTBOXES
+   =========================================================== */
+
+/* Text input */
+div[data-baseweb="input"] input {
+    background: rgba(35,0,0,0.7) !important;
+    border: 1px solid rgba(255,0,60,0.5) !important;
+    color: white !important;
+    border-radius: 10px;
+}
+
+/* CLOSED selectbox (label area) */
+div[data-baseweb="select"] div[role="button"],
+div[data-baseweb="select"] div[aria-expanded="false"] {
+    background-color: rgba(35, 0, 0, 0.85) !important;
+    color: #ffffff !important;
+    border-radius: 10px !important;
+}
+
+/* Text inside collapsed selectbox */
+div[data-baseweb="select"] div[aria-expanded="false"] * {
+    color: #ffffff !important;
+}
+
+/* Selectbox outer container */
+div[data-baseweb="select"] {
+    background-color: rgba(35, 0, 0, 0.85) !important;
+    border: 1px solid rgba(255, 0, 60, 0.55) !important;
+    border-radius: 10px !important;
+}
+
+/* Ensure no white wrappers stay */
+div[data-baseweb="select"] > div:first-child {
+    background-color: rgba(35, 0, 0, 0.85) !important;
+}
+
+/* Dropdown arrow icon */
+div[data-baseweb="select"] svg {
+    fill: #ff6b6b !important;
+}
+
+/* OPENED dropdown menu */
+ul[role="listbox"] {
+    background: rgba(20,0,0,0.9) !important;
+    border: 1px solid rgba(255,0,60,0.4) !important;
+}
+ul[role="listbox"] li {
+    color: white !important;
+}
+ul[role="listbox"] li:hover {
+    background: rgba(255,0,60,0.35) !important;
+}
+
+/* =======================================
+   Textareas
+   ======================================= */
+textarea {
+    background: rgba(35,0,0,0.7) !important;
+    border: 1px solid rgba(255,0,60,0.5) !important;
+    color: white !important;
+}
+
+/* =======================================
+   Expanders
+   ======================================= */
+.streamlit-expanderHeader,
+.streamlit-expanderHeader * {
+    background: rgba(25, 0, 0, 0.65) !important;
+    color: #ffffff !important;
+}
+.streamlit-expanderContent,
+.streamlit-expanderContent * {
+    background: rgba(15, 0, 0, 0.55) !important;
+    color: #ffffff !important;
+}
+
+/* ===========================================================
+   FILE UPLOADER (Final Working Version)
+   =========================================================== */
+
+/* Outer container */
+.stFileUploader {
+    background: rgba(35,0,0,0.45) !important;
+    border: 2px dashed rgba(255,0,50,0.45) !important;
+    border-radius: 12px !important;
+    padding: 1.2rem !important;
+}
+
+/* Dropzone */
+[data-testid="stFileUploader-dropzone"] {
+    background: rgba(35,0,0,0.45) !important;
+    border-radius: 12px !important;
+}
+
+/* Remove white boxes */
+[data-testid="stFileUploader-dropzone"] > div {
+    background: transparent !important;
+}
+
+/* Instruction text → black only */
+[data-testid="stFileUploader-dropzone"] span,
+[data-testid="stFileUploader-dropzone"] p,
+[data-testid="stFileUploaderDropzoneInstructions"] *,
+[data-testid="stFileUploaderDropzoneInstructionsText"] {
+    color: #000000 !important;
+}
+
+/* Uploaded file names */
+.stFileUploader div[role="alert"],
+.stFileUploader div[role="textbox"] {
+    background: transparent !important;
+    color: #ffffff !important;
+}
+
+/* Browse button */
+.stFileUploader button {
+    background: linear-gradient(135deg, #ff003c, #b8002c) !important;
+    color: white !important;
+    border-radius: 10px !important;
+}
+/* ===========================================================
+   FIX — STREAMLIT PORTAL DROPDOWN (BaseWeb Layer)
+   =========================================================== */
+
+/* The outer floating dropdown layer */
+[data-baseweb="layer"],
+[data-baseweb="popover"],
+[data-baseweb="menu"] {
+    background-color: rgba(20, 0, 0, 0.95) !important;
+    border: 1px solid rgba(255,0,60,0.5) !important;
+    backdrop-filter: blur(10px);
+    color: #ffffff !important;
+}
+
+/* The actual dropdown menu list */
+[data-baseweb="menu"] ul,
+[data-baseweb="menu"] div {
+    background-color: rgba(20, 0, 0, 0.95) !important;
+    color: #ffffff !important;
+}
+
+/* Dropdown option text */
+[data-baseweb="menu"] div[role="option"],
+[data-baseweb="menu"] li {
+    color: #ffffff !important;
+    background: transparent !important;
+}
+
+/* Hover effect */
+[data-baseweb="menu"] div[role="option"]:hover,
+[data-baseweb="menu"] li:hover {
+    background-color: rgba(255, 0, 60, 0.35) !important;
+}
+
+/* Remove Streamlit's forced padding/white wrappers */
+[data-baseweb="menu"] * {
+    background: transparent !important;
+    color: #ffffff !important;
+}
+/* ===========================================================
+   GLOBAL FIX FOR ALL STREAMLIT PORTAL ELEMENTS
+   Dropdowns, performance blocks, metrics, tooltips, etc.
+   =========================================================== */
+
+/* Entire floating layer (dropdowns, models panel, popup boxes) */
+[data-baseweb="layer"],
+[data-baseweb="popover"],
+[data-baseweb="menu"],
+[data-baseweb="tooltip"],
+[data-baseweb="modal"],
+[data-testid="stNotification"],
+[data-testid="stMetricValue"],
+[data-testid="stMetricDelta"] {
+    background-color: rgba(0, 0, 0, 0.95) !important;
+    border: 1px solid rgba(255, 215, 0, 0.4) !important;
+    color: #FFD700 !important;
+    backdrop-filter: blur(8px);
+}
+
+/* Typography inside all layer elements */
+[data-baseweb="layer"] *,
+[data-baseweb="popover"] *,
+[data-baseweb="menu"] *,
+[data-baseweb="tooltip"] *,
+[data-baseweb="modal"] *,
+[data-testid="stNotification"] *,
+[data-testid="stMetricValue"] *,
+[data-testid="stMetricDelta"] * {
+    color: #FFD700 !important;      /* bold yellow text */
+    font-weight: 700 !important;    /* bold */
+    background: transparent !important;
+}
+
+/* Menu / dropdown items */
+[data-baseweb="menu"] div[role="option"],
+[data-baseweb="menu"] li {
+    background: transparent !important;
+    color: #FFD700 !important;
+    font-weight: 700 !important;
+}
+
+/* Hover effect */
+[data-baseweb="menu"] div[role="option"]:hover,
+[data-baseweb="menu"] li:hover {
+    background-color: rgba(255, 215, 0, 0.15) !important;
+}
+
+/* Fix for white tables appearing in evaluation section */
+.stTable, .stTable * {
+    background-color: rgba(0,0,0,0.9) !important;
+    color: #FFD700 !important;
+    font-weight: 700 !important;
+}
+
+/* Fix metric containers (RMSE, MAE, R², etc.) */
+[data-testid="stMetricValue"] {
+    color: #FFD700 !important;
+}
+[data-testid="stMetricDelta"] {
+    color: #FFD700 !important;
+}
+
+/* ===========================================================
+   FIX — st.json() BLOCK (was white background + white text)
+   =========================================================== */
+
+[data-testid="stJson"] {
+    background-color: rgba(0, 0, 0, 0.9) !important;
+    color: #FFD700 !important;
+    border-radius: 10px !important;
+    padding: 15px !important;
+    border: 1px solid rgba(255, 215, 0, 0.4) !important;
+}
+
+[data-testid="stJson"] * {
+    color: #FFD700 !important;
+    font-weight: 700 !important;
+    background: transparent !important;
+}
+
+/* ===========================================================
+   FIX — Dropdown scrollbar (make visible)
+   =========================================================== */
+
+ul[role="listbox"]::-webkit-scrollbar {
+    width: 8px !important;
+}
+
+ul[role="listbox"]::-webkit-scrollbar-track {
+    background: rgba(50, 0, 0, 0.9) !important;
+}
+
+ul[role="listbox"]::-webkit-scrollbar-thumb {
+    background: #FF0000 !important;
+    border-radius: 10px !important;
+    border: 1px solid #AA0000 !important;
+}
+
+ul[role="listbox"]::-webkit-scrollbar-thumb:hover {
+    background: #FF3333 !important;
+}
