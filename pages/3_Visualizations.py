@@ -31,7 +31,7 @@ if "datasets" not in st.session_state or dataset_key not in st.session_state["da
 
 df = st.session_state["datasets"][dataset_key]
 
-st.title("📊 Visualizations")
+st.title("Visualizations")
 
 # ---------------- MODEL CHECK ----------------
 if "model_state" not in st.session_state:
@@ -71,7 +71,7 @@ with tab3:
 # ================= TAB 4 (DESCRIPTIVE ONLY) =================
 with tab4:
 
-    st.subheader("📈 Descriptive Analytics")
+    st.subheader("Descriptive Analytics")
 
     numeric_cols = df.select_dtypes(include="number").columns.tolist()
     categorical_cols = df.select_dtypes(include="object").columns.tolist()
@@ -136,4 +136,3 @@ if numeric_cols:
         render_basic_stats_cards(df, stat_col)
 else:
     st.info("No numeric columns detected for stats.")
-    
