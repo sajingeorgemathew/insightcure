@@ -4,6 +4,10 @@ from modules.visualizations import (
     render_time_series,
     render_mutual_information,
 )
+from modules.descriptive import (
+    plot_histogram, plot_boxplot, plot_scatter, 
+    plot_corr_heatmap, plot_pairplot, plot_bar
+)
 from modules.theme import load_theme
 load_theme()
 
@@ -43,7 +47,7 @@ else:
 
     df = st.session_state["datasets"][dataset_name]
 
-    tab1, tab2, tab3 = st.tabs(["Time Series", "Model Performance", "Mutual Information"])
+    tab1, tab2, tab3, tab4 = st.tabs(["Time Series", "Model Performance", "Mutual Information", "Descriptive Plots"])
 
     with tab1:
         render_time_series(df, ms["target"])
@@ -51,6 +55,53 @@ else:
         render_model_visuals(ms)
     with tab3:
         render_mutual_information(df, ms)
+    with tab4:st.subheader(" Descriptive Analytics")
+
+    numeric_cols = df.select_dtypes(include="number").columns.tolist()
+    categorical_cols = df.select_dtypes(include="object").columns.tolist()
+
+    st.markdown("### Histogram")
+    col = st.selectbox("Select numeric column", numeric_cols, key="hist_col")
+    if st.button("Show Histogram"):
+        plot_histogram(df, col)
+
+    st.markdown("---")
+
+    st.markdown("### Boxplot")
+    col = st.selectbox("Select column (boxplot)", numeric_cols, key="box_col")
+    if st.button("Show Boxplot"):
+        plot_boxplot(df, col)
+
+    st.markdown("---")
+
+    st.markdown("### Scatter Plot")
+    x = st.selectbox("X-axis", numeric_cols, key="scatter_x")
+    y = st.selectbox("Y-axis", numeric_cols, key="scatter_y")
+    if st.button("Show Scatter"):
+        plot_scatter(df, x, y)
+
+    st.markdown("---")
+
+    st.markdown("### Correlation Heatmap")
+    heat_cols = st.multiselect(
+        "Select columns for heatmap", numeric_cols, 
+        default=numeric_cols[:5]
+    )
+    if st.button("Show Heatmap"):
+        plot_corr_heatmap(df, heat_cols)
+
+    st.markdown("---")
+
+    st.markdown("### Pairplot")
+    pair_cols = st.multiselect(
+        "Select up to 5 columns",
+        numeric_cols,
+        default=numeric_cols[:3]
+    )
+    if len(pair_cols) > 0 and len(pair_cols) <= 5:
+        if st.button("Show Pairplot"):
+            plot_pairplot(df, pair_cols)
+
 from modules.visualizations import render_basic_stats_cards
 
 # After tabs
