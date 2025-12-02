@@ -104,7 +104,7 @@ if not st.session_state.admin_logged_in:
     if st.button("Login"):
         if hashlib.sha256(password.encode()).hexdigest() == ADMIN_PASSWORD_HASH:
             st.session_state.admin_logged_in = True
-            st.experimental_rerun()
+            st.rerun()
         else:
             st.error("Incorrect password")
 
