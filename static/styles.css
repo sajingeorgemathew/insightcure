@@ -385,3 +385,43 @@ ul[role="listbox"]::-webkit-scrollbar-thumb {
 ul[role="listbox"]::-webkit-scrollbar-thumb:hover {
     background: #FF3333 !important;
 }
+
+/* Hide Streamlit white warning banner */
+div[data-testid="stNotification"] {
+    display: none !important;
+}
+
+/* Hide Streamlit footer */
+footer {visibility: hidden !important;}
+
+/* Hide Streamlit hamburger menu */
+header {visibility: hidden !important;}
+
+/* Hide top "running" status bar */
+div.stDeployButton {display: none !important;}
+
+/* Page loader overlay */
+#page-loader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.90);
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 3rem;
+    font-weight: bold;
+    color: #ff2b4f;
+    text-shadow: 0 0 20px #ff2b4f;
+    animation: pulse 1.5s infinite;
+}
+
+/* Glow animation */
+@keyframes pulse {
+    0%   { opacity: 0.3; }
+    50%  { opacity: 1; }
+    100% { opacity: 0.3; }
+}

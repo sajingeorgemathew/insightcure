@@ -5,24 +5,22 @@ from modules.theme import load_theme
 import hashlib
 
 # ---------------------------------------------------
-# 0. Do NOT load CSS or theme before login page
+# 0. Load theme normally (safe)
 # ---------------------------------------------------
 load_theme()
 
 # ---------------------------------------------------
-# 1. INITIAL PAGE CONFIG (only ONCE)
+# 1. INITIAL CONFIG
 # ---------------------------------------------------
 st.set_page_config(page_title="InsightCure Portal", layout="wide")
 
-
 # ---------------------------------------------------
-# 2. Secure Password Hash
+# 2. Password Hash
 # ---------------------------------------------------
 ADMIN_PASSWORD_HASH = hashlib.sha256("yourpassword123".encode()).hexdigest()
 
-
 # ---------------------------------------------------
-# 3. Initialize Session State
+# 3. Session Init
 # ---------------------------------------------------
 if "admin_logged_in" not in st.session_state:
     st.session_state.admin_logged_in = False
@@ -30,9 +28,8 @@ if "admin_logged_in" not in st.session_state:
 if "datasets" not in st.session_state:
     st.session_state.datasets = {}
 
-
 # ---------------------------------------------------
-# 4. GLOBAL CLICK SOUND (works everywhere)
+# 4. Global Click Sound
 # ---------------------------------------------------
 st.markdown(
     """
@@ -47,13 +44,54 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+# ---------------------------------------------------
+# 5. Custom Page Loader (InsightCure…)
+# ---------------------------------------------------
+loader_html = """
+<div id="page-loader">InsightCure...</div>
+
+<style>
+#page-loader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.90);
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 3rem;
+    font-weight: bold;
+    color: #ff144f;
+    text-shadow: 0 0 20px #ff144f;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% {opacity: 0.3;}
+    50% {opacity: 1;}
+    100% {opacity: 0.3;}
+}
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    setTimeout(function () {
+        var loader = document.getElementById("page-loader");
+        if (loader) { loader.style.display = "none"; }
+    }, 900);
+});
+</script>
+"""
+st.markdown(loader_html, unsafe_allow_html=True)
 
 # ---------------------------------------------------
-# 5. LOGIN PAGE (Video + Music)
+# 6. LOGIN PAGE (Video + Music)
 # ---------------------------------------------------
 if not st.session_state.admin_logged_in:
 
-    # --- VIDEO BACKGROUND ---
     st.markdown(
         """
         <video autoplay muted loop id="adminVideoBG">
@@ -86,7 +124,6 @@ if not st.session_state.admin_logged_in:
         unsafe_allow_html=True
     )
 
-    # --- MUSIC ON LOGIN PAGE ONLY ---
     st.markdown(
         """
         <audio autoplay loop>
@@ -96,8 +133,8 @@ if not st.session_state.admin_logged_in:
         unsafe_allow_html=True
     )
 
-    # --- LOGIN UI ---
-    st.markdown("<h1 style='text-align:center; color:white;'>Admin Login</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align:center; color:white;'>Admin Login</h1>",
+                unsafe_allow_html=True)
 
     password = st.text_input("Enter Password", type="password")
 
@@ -108,20 +145,28 @@ if not st.session_state.admin_logged_in:
         else:
             st.error("Incorrect password")
 
-    st.stop()   # USER must login before app runs
-
+    st.stop()
 
 # ---------------------------------------------------
-# 6. MAIN APP (After Login)
+# 7. MAIN APP (After Login)
 # ---------------------------------------------------
 
-# --- Apply CSS AFTER LOGIN (avoid masking video) ---
+# Hide Streamlit warnings, menu, footer
+st.markdown("""
+<style>
+div[data-testid="stNotification"] {display:none !important;}
+footer {visibility: hidden !important;}
+header {visibility: hidden !important;}
+</style>
+""", unsafe_allow_html=True)
+
+# Load CSS AFTER login
 styles_path = Path("static/styles.css")
 if styles_path.exists():
     with open(styles_path) as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
-# --- Sidebar ---
+# Sidebar
 st.sidebar.title("InsightCure FPP Portal")
 st.sidebar.markdown("Your AI-powered analytics workspace.")
 
@@ -129,11 +174,15 @@ if Path("static/logo.png").exists():
     st.sidebar.image("static/logo.png", use_column_width=True)
 
 st.sidebar.markdown("### Navigation (top-left page selector)")
-st.sidebar.markdown(
-    "- Upload Data\n- Model Training\n- Visualizations\n- AI Insights\n- Datasets Overview"
-)
+st.sidebar.markdown("""
+- Upload Data
+- Model Training
+- Visualizations
+- AI Insights
+- Datasets Overview
+""")
 
-# --- Dashboard ---
+# Dashboard
 st.title("Enterprise Analytics Dashboard")
 
 total_files = len(st.session_state.datasets)
