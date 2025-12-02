@@ -47,45 +47,6 @@ st.markdown(
 # ---------------------------------------------------
 # 5. Custom Page Loader (InsightCure…)
 # ---------------------------------------------------
-loader_html = """
-<div id="page-loader">InsightCure...</div>
-
-<style>
-#page-loader {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.90);
-    z-index: 9999;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 3rem;
-    font-weight: bold;
-    color: #ff144f;
-    text-shadow: 0 0 20px #ff144f;
-    animation: pulse 1.5s infinite;
-}
-
-@keyframes pulse {
-    0% {opacity: 0.3;}
-    50% {opacity: 1;}
-    100% {opacity: 0.3;}
-}
-</style>
-
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-    setTimeout(function () {
-        var loader = document.getElementById("page-loader");
-        if (loader) { loader.style.display = "none"; }
-    }, 900);
-});
-</script>
-"""
-st.markdown(loader_html, unsafe_allow_html=True)
 
 # ---------------------------------------------------
 # 6. LOGIN PAGE (Video + Music)
@@ -150,6 +111,42 @@ if not st.session_state.admin_logged_in:
 # ---------------------------------------------------
 # 7. MAIN APP (After Login)
 # ---------------------------------------------------
+
+# Inject loader (ONLY after login)
+st.markdown("""
+<style>
+#loader {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    top: 0; left: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(0,0,0,0.8);
+    backdrop-filter: blur(3px);
+    z-index: 9999;
+    font-size: 60px;
+    color: #ff0044;
+    font-weight: bold;
+    letter-spacing: 4px;
+    animation: glow 1.2s ease-in-out infinite alternate;
+}
+@keyframes glow {
+    from { text-shadow: 0 0 10px red; }
+    to { text-shadow: 0 0 40px red; }
+}
+</style>
+
+<div id="loader">INSIGHTCURE</div>
+
+<script>
+setTimeout(function(){
+    const loader = document.getElementById("loader");
+    if (loader) loader.style.display = "none";
+}, 1500);
+</script>
+""", unsafe_allow_html=True)
 
 # Hide Streamlit warnings, menu, footer
 st.markdown("""
