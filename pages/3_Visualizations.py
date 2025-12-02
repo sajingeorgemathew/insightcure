@@ -1,7 +1,6 @@
 import streamlit as st
 from modules.visualizations import (
     render_model_visuals,
-    render_time_series,
     render_mutual_information,
     render_basic_stats_cards,
 )
@@ -48,9 +47,8 @@ if "datasets" not in st.session_state or dataset_name not in st.session_state["d
 
 df = st.session_state["datasets"][dataset_name]
 
-# ------------------- TABS -------------------
-tab1, tab2, tab3, tab4 = st.tabs([
-    "Time Series", 
+# ------------------- TABS (Time Series Removed) -------------------
+tab1, tab2, tab3 = st.tabs([
     "Model Performance", 
     "Mutual Information", 
     "Descriptive Plots"
@@ -58,18 +56,14 @@ tab1, tab2, tab3, tab4 = st.tabs([
 
 # ================= TAB 1 =================
 with tab1:
-    render_time_series(df, ms["target"])
+    render_model_visuals(ms)
 
 # ================= TAB 2 =================
 with tab2:
-    render_model_visuals(ms)
-
-# ================= TAB 3 =================
-with tab3:
     render_mutual_information(df, ms)
 
-# ================= TAB 4 (DESCRIPTIVE ONLY) =================
-with tab4:
+# ================= TAB 3 (DESCRIPTIVE ONLY) =================
+with tab3:
 
     st.subheader("Descriptive Analytics")
 
@@ -124,7 +118,7 @@ with tab4:
         if st.button("Show Pairplot"):
             plot_pairplot(df, pair_cols)
 
-# ================ QUICK STATS (OUTSIDE TABS) ================
+# ---------------- QUICK STATS ----------------
 st.markdown("---")
 st.subheader("Quick Stats")
 
