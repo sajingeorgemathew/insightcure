@@ -19,6 +19,11 @@ st.set_page_config(page_title="InsightCure Portal", layout="wide")
 # ---------------------------------------------------
 ADMIN_PASSWORD_HASH = hashlib.sha256("yourpassword123".encode()).hexdigest()
 
+# ✅ NEW: CDN VIDEO URL FOR LOGIN BACKGROUND
+# Replace this with your *direct* video URL (must end with .mp4 or similar)
+VIDEO_BG_URL = "<blockquote class="imgur-embed-pub" lang="en" data-id="a/DeXs9Uy" data-context="false" ><a href="//imgur.com/a/DeXs9Uy"></a></blockquote><script async src="//s.imgur.com/min/embed.js" charset="utf-8"></script>"  # <-- put the real direct video link here
+
+
 # ---------------------------------------------------
 # 3. Session Init
 # ---------------------------------------------------
@@ -53,14 +58,15 @@ st.markdown(
 # ---------------------------------------------------
 if not st.session_state.admin_logged_in:
 
+    # ✅ UPDATED: use VIDEO_BG_URL instead of /static/admin_bg.mp4
     st.markdown(
-        """
-        <video autoplay muted loop id="adminVideoBG">
-            <source src="/static/admin_bg.mp4" type="video/mp4">
+        f"""
+        <video autoplay muted loop playsinline id="adminVideoBG">
+            <source src="{VIDEO_BG_URL}" type="video/mp4">
         </video>
 
         <style>
-        #adminVideoBG {
+        #adminVideoBG {{
             position: fixed;
             right: 0;
             bottom: 0;
@@ -68,8 +74,8 @@ if not st.session_state.admin_logged_in:
             min-height: 100%;
             object-fit: cover;
             z-index: -2;
-        }
-        .overlay {
+        }}
+        .overlay {{
             position: fixed;
             width: 100%;
             height: 100%;
@@ -77,7 +83,7 @@ if not st.session_state.admin_logged_in:
             left: 0;
             background: rgba(0,0,0,0.55);
             z-index: -1;
-        }
+        }}
         </style>
 
         <div class="overlay"></div>
@@ -112,7 +118,6 @@ if not st.session_state.admin_logged_in:
 # 7. MAIN APP (After Login)
 # ---------------------------------------------------
 
-# Inject loader (ONLY after login)
 # Hide Streamlit warnings, menu, footer
 st.markdown("""
 <style>
