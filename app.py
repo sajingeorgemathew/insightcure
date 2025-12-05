@@ -5,7 +5,7 @@ from modules.theme import load_theme
 import hashlib
 
 # ---------------------------------------------------
-# 0. Load theme normally (safe)
+# 0. Load global theme (safe)
 # ---------------------------------------------------
 load_theme()
 
@@ -15,25 +15,24 @@ load_theme()
 st.set_page_config(page_title="InsightCure Portal", layout="wide")
 
 # ---------------------------------------------------
-# 2. Password Hash
+# 2. Admin Password Hash
 # ---------------------------------------------------
 ADMIN_PASSWORD_HASH = hashlib.sha256("yourpassword123".encode()).hexdigest()
 
 # ---------------------------------------------------
-# 2B. DIRECT CDN VIDEO URL (use MP4-only link)
+# 2B. VIDEO URL for login background
+# (Streamlit/Render may block autoplay, but logic remains untouched)
 # ---------------------------------------------------
-VIDEO_BG_URL = "https://i.imgur.com/8l7bI5e.mp4"   # <-- replace with your direct MP4
-
+VIDEO_BG_URL = "https://go.screenpal.com/watch/cTlhlXnYc2X"
 
 # ---------------------------------------------------
-# 3. Session Init
+# 3. Session Initialization
 # ---------------------------------------------------
 if "admin_logged_in" not in st.session_state:
     st.session_state.admin_logged_in = False
 
 if "datasets" not in st.session_state:
     st.session_state.datasets = {}
-
 
 # ---------------------------------------------------
 # 4. Global Click Sound
@@ -51,47 +50,45 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-
 # ---------------------------------------------------
-# 5. LOGIN PAGE (SAFE VIDEO PANEL + MUSIC)
+# 5. LOGIN PAGE (Video + Music)
 # ---------------------------------------------------
 if not st.session_state.admin_logged_in:
 
-    # --------- STABLE VIDEO PANEL (no fullscreen autoplay issues) ---------
+    # Background video panel
     st.markdown(
         f"""
+        <video autoplay muted loop playsinline id="adminVideoBG">
+            <source src="{VIDEO_BG_URL}" type="video/mp4">
+        </video>
+
         <style>
-        .login-bg {{
-            background: radial-gradient(circle at top,
-                rgba(140,0,0,0.65),
-                rgba(0,0,0,0.95));
+        #adminVideoBG {{
             position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            z-index: -5;
+            right: 0;
+            bottom: 0;
+            min-width: 100%;
+            min-height: 100%;
+            object-fit: cover;
+            z-index: -2;
         }}
-        .video-box {{
-            width: 70%;
-            max-width: 700px;
-            border-radius: 18px;
-            overflow: hidden;
-            margin: 40px auto 20px auto;
-            box-shadow: 0 0 25px rgba(255,0,60,0.55);
+        .overlay {{
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            background: rgba(0,0,0,0.55);
+            z-index: -1;
         }}
         </style>
 
-        <div class="login-bg"></div>
-
-        <div class="video-box">
-            <video autoplay muted loop playsinline style="width:100%; height:auto;">
-                <source src="{VIDEO_BG_URL}" type="video/mp4">
-            </video>
-        </div>
+        <div class="overlay"></div>
         """,
         unsafe_allow_html=True
     )
 
-    # --------- BACKGROUND MUSIC (unchanged) ---------
+    # Background music
     st.markdown(
         """
         <audio autoplay loop>
@@ -101,44 +98,47 @@ if not st.session_state.admin_logged_in:
         unsafe_allow_html=True
     )
 
-    # -------- LOGIN FORM ----------
+    # Login header
     st.markdown(
         "<h1 style='text-align:center; color:white;'>Admin Login</h1>",
         unsafe_allow_html=True
     )
 
+    # Login form
     password = st.text_input("Enter Password", type="password")
 
     if st.button("Login"):
-        if hashlib.sha256(password.encode()).hexdigest() == ADMIN_PASSWORD_HASH:
+        entered_hash = hashlib.sha256(password.encode()).hexdigest()
+        if entered_hash == ADMIN_PASSWORD_HASH:
             st.session_state.admin_logged_in = True
-            st.rerun()   # SAFE VERSION OF rerun()
+            st.rerun()
         else:
             st.error("Incorrect password")
 
-    st.stop()  # Prevent loading rest of app until login
+    st.stop()   # Prevent loading of the rest of the UI
 
 
 # ---------------------------------------------------
-# 7. MAIN APP (After Login)
+# 6. MAIN APP (AFTER LOGIN)
 # ---------------------------------------------------
 
-# Hide Streamlit warnings, menu, footer
-st.markdown("""
-<style>
-div[data-testid="stNotification"] {display:none !important;}
-footer {visibility: hidden !important;}
-header {visibility: hidden !important;}
-</style>
-""", unsafe_allow_html=True)
+# Remove Streamlit menu/footer/header
+st.markdown(
+    """
+    <style>
+    div[data-testid="stNotification"] {display:none !important;}
+    footer {visibility: hidden !important;}
+    header {visibility: hidden !important;}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
-
-# Load CSS AFTER login
+# Inject custom stylesheet AFTER login
 styles_path = Path("static/styles.css")
 if styles_path.exists():
     with open(styles_path) as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-
 
 # Sidebar
 st.sidebar.title("InsightCure FPP Portal")
@@ -148,14 +148,14 @@ if Path("static/logo.png").exists():
     st.sidebar.image("static/logo.png", use_column_width=True)
 
 st.sidebar.markdown(
-"""
-### Navigation  
-- Upload Data  
-- Model Training  
-- Visualizations  
-- AI Insights  
-- Datasets Overview  
-"""
+    """
+    ### Navigation (top-left page selector)
+    - Upload Data
+    - Model Training
+    - Visualizations
+    - AI Insights
+    - Datasets Overview
+    """
 )
 
 # Dashboard
@@ -163,29 +163,51 @@ st.title("Enterprise Analytics Dashboard")
 
 total_files = len(st.session_state.datasets)
 total_rows = sum(df.shape[0] for df in st.session_state.datasets.values())
-total_columns = len(
-    set().union(*[set(df.columns) for df in st.session_state.datasets.values()])
-) if total_files > 0 else 0
+total_columns = (
+    len(set().union(*[set(df.columns) for df in st.session_state.datasets.values()]))
+    if total_files > 0 else 0
+)
 
+# KPI Cards
 col1, col2, col3 = st.columns(3)
+
 with col1:
     st.markdown(
-        f'<div class="card"><div class="card-title">Datasets Loaded</div>'
-        f'<div class="card-value">{total_files}</div></div>',
-        unsafe_allow_html=True)
+        f"""
+        <div class="card">
+            <div class="card-title">Datasets Loaded</div>
+            <div class="card-value">{total_files}</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
 with col2:
     st.markdown(
-        f'<div class="card"><div class="card-title">Total Rows</div>'
-        f'<div class="card-value">{total_rows}</div></div>',
-        unsafe_allow_html=True)
+        f"""
+        <div class="card">
+            <div class="card-title">Total Rows</div>
+            <div class="card-value">{total_rows}</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
 with col3:
     st.markdown(
-        f'<div class="card"><div class="card-title">Unique Columns</div>'
-        f'<div class="card-value">{total_columns}</div></div>',
-        unsafe_allow_html=True)
+        f"""
+        <div class="card">
+            <div class="card-title">Unique Columns</div>
+            <div class="card-value">{total_columns}</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
+# Divider
 st.markdown("---")
 
+# Dataset list
 if total_files == 0:
     st.info("No datasets loaded yet. Go to **Upload Data** page.")
 else:
