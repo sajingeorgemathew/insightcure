@@ -20,12 +20,6 @@ st.set_page_config(page_title="InsightCure Portal", layout="wide")
 ADMIN_PASSWORD_HASH = hashlib.sha256("yourpassword123".encode()).hexdigest()
 
 # ---------------------------------------------------
-# 2B. VIDEO URL for login background
-# (Streamlit/Render may block autoplay, but logic remains untouched)
-# ---------------------------------------------------
-VIDEO_BG_URL = "https://go.screenpal.com/watch/cTlhlXnYc2X"
-
-# ---------------------------------------------------
 # 3. Session Initialization
 # ---------------------------------------------------
 if "admin_logged_in" not in st.session_state:
@@ -51,60 +45,91 @@ st.markdown(
 )
 
 # ---------------------------------------------------
-# 5. LOGIN PAGE (Video + Music)
+# 5. LOGIN PAGE (InsightCure Built-In Animation)
 # ---------------------------------------------------
 if not st.session_state.admin_logged_in:
 
-    # Background video panel
-    st.markdown(
-        f"""
-        <video autoplay muted loop playsinline id="adminVideoBG">
-            <source src="{VIDEO_BG_URL}" type="video/mp4">
-        </video>
-
-        <style>
-        #adminVideoBG {{
-            position: fixed;
-            right: 0;
-            bottom: 0;
-            min-width: 100%;
-            min-height: 100%;
-            object-fit: cover;
-            z-index: -2;
-        }}
-        .overlay {{
-            position: fixed;
-            width: 100%;
-            height: 100%;
-            top: 0;
-            left: 0;
-            background: rgba(0,0,0,0.55);
-            z-index: -1;
-        }}
-        </style>
-
-        <div class="overlay"></div>
-        """,
-        unsafe_allow_html=True
-    )
-
-    # Background music
     st.markdown(
         """
-        <audio autoplay loop>
-            <source src="/static/theme_music.mp3" type="audio/mp3">
-        </audio>
+        <style>
+
+        /* Background */
+        .login-bg {
+            background: linear-gradient(135deg, #000000 0%, #1a0000 40%, #300000 100%);
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: -5;
+        }
+
+        /* Center animation box */
+        .ic-box {
+            width: 70%;
+            max-width: 700px;
+            margin: 60px auto 20px auto;
+            padding: 40px;
+            border-radius: 18px;
+            text-align: center;
+            border: 2px solid rgba(255,0,60,0.6);
+            background: rgba(20,0,0,0.45);
+            box-shadow: 0 0 25px rgba(255,0,60,0.45);
+            animation: glowBox 3s ease-in-out infinite alternate;
+        }
+
+        /* Glow animation */
+        @keyframes glowBox {
+            0% { box-shadow: 0 0 10px rgba(255,0,60,0.3); }
+            100% { box-shadow: 0 0 25px rgba(255,0,60,0.8); }
+        }
+
+        /* Animated InsightCure text */
+        .ic-title {
+            font-size: 48px;
+            font-weight: 900;
+            letter-spacing: 4px;
+            color: #ff1a40;
+            text-shadow: 0 0 12px rgba(255,0,80,0.9);
+            animation: pulseText 2.8s infinite ease-in-out;
+        }
+
+        @keyframes pulseText {
+            0%   { opacity: 0.4; transform: scale(0.95); }
+            50%  { opacity: 1;   transform: scale(1.04); }
+            100% { opacity: 0.4; transform: scale(0.95); }
+        }
+
+        /* Moving scan bar */
+        .scan-bar {
+            width: 100%;
+            height: 4px;
+            margin-top: 18px;
+            background: linear-gradient(90deg, transparent, #ff002f, transparent);
+            animation: scanMove 1.8s infinite linear;
+        }
+
+        @keyframes scanMove {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        </style>
+
+        <div class="login-bg"></div>
+
+        <div class="ic-box">
+            <div class="ic-title">InsightCure</div>
+            <div class="scan-bar"></div>
+        </div>
         """,
         unsafe_allow_html=True
     )
 
-    # Login header
+    # -------- LOGIN FORM ----------
     st.markdown(
         "<h1 style='text-align:center; color:white;'>Admin Login</h1>",
         unsafe_allow_html=True
     )
 
-    # Login form
     password = st.text_input("Enter Password", type="password")
 
     if st.button("Login"):
@@ -115,7 +140,7 @@ if not st.session_state.admin_logged_in:
         else:
             st.error("Incorrect password")
 
-    st.stop()   # Prevent loading of the rest of the UI
+    st.stop()
 
 
 # ---------------------------------------------------
