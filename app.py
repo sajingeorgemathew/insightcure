@@ -21,7 +21,7 @@ ADMIN_PASSWORD_HASH = hashlib.sha256("yourpassword123".encode()).hexdigest()
 
 # ✅ NEW: CDN VIDEO URL FOR LOGIN BACKGROUND
 # Replace this with your *direct* video URL (must end with .mp4 or similar)
-VIDEO_BG_URL = "https://drive.google.com/uc?export=download&id=1k0vSZAG_5CB-ouFBgmMSvagN083I8iJI"  # <-- put the real direct video link here
+VIDEO_BG_URL = "https://go.screenpal.com/watch/cTlhlXnYc2X"  # <-- put the real direct video link here
 
 
 # ---------------------------------------------------
