@@ -3,6 +3,7 @@ import pandas as pd
 from pathlib import Path
 from modules.theme import load_theme
 import hashlib
+import base64
 
 # ---------------------------------------------------
 # 0. Load global theme (safe)
@@ -45,90 +46,55 @@ st.markdown(
 )
 
 # ---------------------------------------------------
-# 5. LOGIN PAGE (InsightCure Built-In Animation)
+# 5. LOGIN PAGE (Image Background + Overlay)
 # ---------------------------------------------------
 if not st.session_state.admin_logged_in:
 
-    st.markdown(
-        """
-        <style>
+    # --- Path to your background image ---
+    # Make sure this file exists in your project: static/login_bg.jpg
+    img_path = Path("static/login_bg.jpg")
+    if img_path.exists():
+        # Read image and encode in base64 so it works reliably
+        with open(img_path, "rb") as f:
+            img_bytes = f.read()
+        img_b64 = base64.b64encode(img_bytes).decode()
 
-        /* Background */
-        .login-bg {
-            background: linear-gradient(135deg, #000000 0%, #1a0000 40%, #300000 100%);
+        background_style = f"""
+        <style>
+        .login-bg {{
+            background-image: url("data:image/jpeg;base64,{img_b64}");
+            background-size: cover;
+            background-position: center;
             position: fixed;
             top: 0; left: 0;
             width: 100%; height: 100%;
             z-index: -5;
-        }
-
-        /* Center animation box */
-        .ic-box {
-            width: 70%;
-            max-width: 700px;
-            margin: 60px auto 20px auto;
-            padding: 40px;
-            border-radius: 18px;
-            text-align: center;
-            border: 2px solid rgba(255,0,60,0.6);
-            background: rgba(20,0,0,0.45);
-            box-shadow: 0 0 25px rgba(255,0,60,0.45);
-            animation: glowBox 3s ease-in-out infinite alternate;
-        }
-
-        /* Glow animation */
-        @keyframes glowBox {
-            0% { box-shadow: 0 0 10px rgba(255,0,60,0.3); }
-            100% { box-shadow: 0 0 25px rgba(255,0,60,0.8); }
-        }
-
-        /* Animated InsightCure text */
-        .ic-title {
-            font-size: 48px;
-            font-weight: 900;
-            letter-spacing: 4px;
-            color: #ff1a40;
-            text-shadow: 0 0 12px rgba(255,0,80,0.9);
-            animation: pulseText 2.8s infinite ease-in-out;
-        }
-
-        @keyframes pulseText {
-            0%   { opacity: 0.4; transform: scale(0.95); }
-            50%  { opacity: 1;   transform: scale(1.04); }
-            100% { opacity: 0.4; transform: scale(0.95); }
-        }
-
-        /* Moving scan bar */
-        .scan-bar {
-            width: 100%;
-            height: 4px;
-            margin-top: 18px;
-            background: linear-gradient(90deg, transparent, #ff002f, transparent);
-            animation: scanMove 1.8s infinite linear;
-        }
-
-        @keyframes scanMove {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
-        }
-
+        }}
+        .overlay {{
+            position: fixed;
+            width: 100%; height: 100%;
+            top: 0; left: 0;
+            background: rgba(0,0,0,0.55);
+            z-index: -4;
+        }}
+        .login-container {{
+            position: relative;
+            z-index: 1;
+            padding-top: 120px;
+        }}
         </style>
-
         <div class="login-bg"></div>
+        <div class="overlay"></div>
+        """
+        st.markdown(background_style, unsafe_allow_html=True)
 
-        <div class="ic-box">
-            <div class="ic-title">InsightCure</div>
-            <div class="scan-bar"></div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    else:
+        # If image not found, fallback to plain background
+        st.markdown("<style>body {background-color: #000000;}</style>", unsafe_allow_html=True)
 
-    # -------- LOGIN FORM ----------
-    st.markdown(
-        "<h1 style='text-align:center; color:white;'>Admin Login</h1>",
-        unsafe_allow_html=True
-    )
+    # --- Login UI ---
+    st.markdown("<div class='login-container'></div>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align:center; color:white;'>Admin Login</h1>", unsafe_allow_html=True)
 
     password = st.text_input("Enter Password", type="password")
 
@@ -142,24 +108,20 @@ if not st.session_state.admin_logged_in:
 
     st.stop()
 
-
 # ---------------------------------------------------
 # 6. MAIN APP (AFTER LOGIN)
 # ---------------------------------------------------
 
-# Remove Streamlit menu/footer/header
-st.markdown(
-    """
-    <style>
-    div[data-testid="stNotification"] {display:none !important;}
-    footer {visibility: hidden !important;}
-    header {visibility: hidden !important;}
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+# Hide Streamlit UI elements
+st.markdown("""
+<style>
+div[data-testid="stNotification"] {display:none !important;}
+footer {visibility: hidden !important;}
+header {visibility: hidden !important;}
+</style>
+""", unsafe_allow_html=True)
 
-# Inject custom stylesheet AFTER login
+# Load custom CSS after login
 styles_path = Path("static/styles.css")
 if styles_path.exists():
     with open(styles_path) as f:
@@ -193,46 +155,28 @@ total_columns = (
     if total_files > 0 else 0
 )
 
-# KPI Cards
 col1, col2, col3 = st.columns(3)
-
 with col1:
     st.markdown(
-        f"""
-        <div class="card">
-            <div class="card-title">Datasets Loaded</div>
-            <div class="card-value">{total_files}</div>
-        </div>
-        """,
+        f'<div class="card"><div class="card-title">Datasets Loaded</div>'
+        f'<div class="card-value">{total_files}</div></div>',
         unsafe_allow_html=True
     )
-
 with col2:
     st.markdown(
-        f"""
-        <div class="card">
-            <div class="card-title">Total Rows</div>
-            <div class="card-value">{total_rows}</div>
-        </div>
-        """,
+        f'<div class="card"><div class="card-title">Total Rows</div>'
+        f'<div class="card-value">{total_rows}</div></div>',
         unsafe_allow_html=True
     )
-
 with col3:
     st.markdown(
-        f"""
-        <div class="card">
-            <div class="card-title">Unique Columns</div>
-            <div class="card-value">{total_columns}</div>
-        </div>
-        """,
+        f'<div class="card"><div class="card-title">Unique Columns</div>'
+        f'<div class="card-value">{total_columns}</div></div>',
         unsafe_allow_html=True
     )
 
-# Divider
 st.markdown("---")
 
-# Dataset list
 if total_files == 0:
     st.info("No datasets loaded yet. Go to **Upload Data** page.")
 else:
