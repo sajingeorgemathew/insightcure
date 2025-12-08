@@ -41,11 +41,10 @@ st.markdown(
 )
 
 # ---------------------------------------------------
-# 5. LOGIN PAGE (Background Image)
+# 5. LOGIN PAGE (Background Image + Styled Input)
 # ---------------------------------------------------
 if not st.session_state.admin_logged_in:
 
-    # Load background image from static folder safely
     img_path = Path("static/login_bg.jpg")
     if img_path.exists():
         with open(img_path, "rb") as f:
@@ -55,6 +54,8 @@ if not st.session_state.admin_logged_in:
         st.markdown(
             f"""
             <style>
+
+            /* Fullscreen background image */
             body {{
                 background-image: url("data:image/jpeg;base64,{img_b64}");
                 background-size: cover !important;
@@ -63,10 +64,14 @@ if not st.session_state.admin_logged_in:
                 background-attachment: fixed !important;
             }}
 
+            /* Remove white header margin */
             .stApp {{
                 background: transparent !important;
+                margin-top: 0 !important;
+                padding-top: 0 !important;
             }}
 
+            /* Dark overlay for clarity */
             .login-overlay {{
                 position: fixed;
                 width: 100%; height: 100%;
@@ -75,11 +80,33 @@ if not st.session_state.admin_logged_in:
                 z-index: 0;
             }}
 
+            /* Center login section */
             .login-container {{
                 z-index: 1;
                 position: relative;
                 padding-top: 140px;
             }}
+
+            /* Make password box white text */
+            input[type="password"] {{
+                color: white !important;
+                font-weight: 600;
+                background-color: rgba(0,0,0,0.35) !important;
+                border: 1px solid #ffffff55 !important;
+                border-radius: 10px !important;
+            }}
+
+            /* Placeholder text white */
+            input::placeholder {{
+                color: #f0f0f0 !important;
+                opacity: 1 !important;
+            }}
+
+            /* Sidebar not visible on login */
+            section[data-testid="stSidebar"] {{
+                display: none;
+            }}
+
             </style>
 
             <div class="login-overlay"></div>
@@ -107,7 +134,6 @@ if not st.session_state.admin_logged_in:
     st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
-
 # ---------------------------------------------------
 # 6. MAIN APP (AFTER LOGIN)
 # ---------------------------------------------------
@@ -115,13 +141,21 @@ if not st.session_state.admin_logged_in:
 # Load theme ONLY after login
 load_theme()
 
-# Hide Streamlit UI elements
+# Hide top menu + footer
 st.markdown(
     """
     <style>
+
     div[data-testid="stNotification"] {display:none !important;}
     footer {visibility: hidden !important;}
     header {visibility: hidden !important;}
+
+    /* Sidebar custom color */
+    section[data-testid="stSidebar"] {
+        background-color: #0A0A0A !important;
+        border-right: 1px solid #222 !important;
+    }
+
     </style>
     """,
     unsafe_allow_html=True
@@ -166,7 +200,6 @@ with col1:
         """,
         unsafe_allow_html=True
     )
-
 with col2:
     st.markdown(
         f"""
@@ -177,7 +210,6 @@ with col2:
         """,
         unsafe_allow_html=True
     )
-
 with col3:
     st.markdown(
         f"""
