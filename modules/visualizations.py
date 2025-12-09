@@ -9,6 +9,25 @@ from modules.modeling import compute_mutual_information
 
 
 # ======================================================
+#  GLOBAL DARK TRANSPARENT PLOTLY LAYOUT
+# ======================================================
+def _apply_dark_style(fig, title: str):
+    fig.update_layout(
+        title=title,
+        template="plotly_dark",
+        paper_bgcolor="rgba(0,0,0,0)",    # Transparent background
+        plot_bgcolor="rgba(0,0,0,0)",     # Transparent plot region
+        font=dict(color="white"),
+        title_font=dict(color="white", size=20),
+        legend=dict(
+            font=dict(color="white"),
+            bgcolor="rgba(0,0,0,0)"
+        )
+    )
+    return fig
+
+
+# ======================================================
 #   DATASET OVERVIEW CARDS (UNCHANGED)
 # ======================================================
 def render_dataset_overview_cards(df: pd.DataFrame, name: str):
@@ -46,16 +65,10 @@ def render_time_series(df: pd.DataFrame, target: str):
         if target in df_plot.columns:
             st.subheader(f"{target} over time ({date_col})")
 
-            fig = px.line(
-                df_plot,
-                x=date_col,
-                y=target,
-                title=f"{target} Time Series",
-                template="plotly_dark"
-            )
+            fig = px.line(df_plot, x=date_col, y=target)
+            _apply_dark_style(fig, f"{target} Time Series")
 
             st.plotly_chart(fig, use_container_width=True)
-
     except Exception:
         pass
 
@@ -79,15 +92,12 @@ def render_model_visuals(model_state: dict):
         fig = px.scatter(
             x=y_test,
             y=y_pred,
-            labels={"x": "Actual", "y": "Predicted"},
-            title="Predicted vs Actual",
-            template="plotly_dark"
+            labels={"x": "Actual", "y": "Predicted"}
         )
 
-        # Add reference diagonal
+        # Perfect fit line
         min_val = min(min(y_test), min(y_pred))
         max_val = max(max(y_test), max(y_pred))
-
         fig.add_trace(
             go.Scatter(
                 x=[min_val, max_val],
@@ -98,6 +108,7 @@ def render_model_visuals(model_state: dict):
             )
         )
 
+        _apply_dark_style(fig, "Predicted vs Actual")
         st.plotly_chart(fig, use_container_width=True)
 
     # ---------------------------
@@ -115,15 +126,13 @@ def render_model_visuals(model_state: dict):
                 colorscale="Blues",
                 text=cm,
                 texttemplate="%{text}",
+                showscale=True
             )
         )
 
-        fig.update_layout(
-            title="Confusion Matrix",
-            xaxis_title="Predicted",
-            yaxis_title="Actual",
-            template="plotly_dark"
-        )
+        _apply_dark_style(fig, "Confusion Matrix")
+        fig.update_xaxes(title="Predicted")
+        fig.update_yaxes(title="Actual")
 
         st.plotly_chart(fig, use_container_width=True)
 
@@ -150,12 +159,12 @@ def render_model_visuals(model_state: dict):
             top10,
             x="importance",
             y="feature",
-            orientation="h",
-            title="Top 10 Features",
-            template="plotly_dark"
+            orientation="h"
         )
 
+        _apply_dark_style(fig, "Top 10 Features (Permutation Importance)")
         fig.update_layout(height=500)
+
         st.plotly_chart(fig, use_container_width=True)
 
     except Exception as e:
@@ -163,7 +172,7 @@ def render_model_visuals(model_state: dict):
 
 
 # ======================================================
-#   MUTUAL INFORMATION VISUALIZATION (Plotly)
+#   MUTUAL INFORMATION (Plotly)
 # ======================================================
 def render_mutual_information(df: pd.DataFrame, model_state: dict):
     task_type = model_state["task_type"]
@@ -187,10 +196,10 @@ def render_mutual_information(df: pd.DataFrame, model_state: dict):
         x="mutual_information",
         y="feature",
         orientation="h",
-        labels={"mutual_information": "Mutual Information"},
-        title=f"Top 10 Features by Mutual Information ({best_model_name})",
-        template="plotly_dark"
+        labels={"mutual_information": "Mutual Information"}
     )
+
+    _apply_dark_style(fig, f"Top MI Features ({best_model_name})")
 
     st.plotly_chart(fig, use_container_width=True)
 

@@ -3,54 +3,70 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 
-# ============================================
-#  HISTOGRAM (Interactive)
-# ============================================
+# ============================================================
+# Helper: Apply uniform dark styling (transparent background)
+# ============================================================
+def _apply_dark_layout(fig, title):
+    fig.update_layout(
+        title=title,
+        template="plotly_dark",
+        paper_bgcolor="rgba(0,0,0,0)",   # Transparent background
+        plot_bgcolor="rgba(0,0,0,0)",    # Transparent plot area
+        font=dict(color="white"),
+        title_font=dict(color="white", size=20),
+        legend=dict(
+            font=dict(color="white"),
+            bgcolor="rgba(0,0,0,0)"
+        )
+    )
+    return fig
+
+
+# ============================================================
+# HISTOGRAM (Interactive)
+# ============================================================
 def plot_histogram(df, column):
     fig = px.histogram(
         df,
         x=column,
         nbins=30,
-        marginal="box",
         opacity=0.85,
-        title=f"Histogram: {column}",
-        template="plotly_dark"
+        marginal="box",
     )
+    _apply_dark_layout(fig, f"Histogram: {column}")
     st.plotly_chart(fig, use_container_width=True)
 
 
-# ============================================
-#  BOXPLOT (Interactive)
-# ============================================
+# ============================================================
+# BOXPLOT (Interactive)
+# ============================================================
 def plot_boxplot(df, column):
     fig = px.box(
         df,
         y=column,
         points="all",
-        title=f"Boxplot: {column}",
-        template="plotly_dark"
     )
+    _apply_dark_layout(fig, f"Boxplot: {column}")
     st.plotly_chart(fig, use_container_width=True)
 
 
-# ============================================
-#  SCATTER PLOT (Interactive)
-# ============================================
+# ============================================================
+# SCATTER PLOT (Interactive)
+# ============================================================
 def plot_scatter(df, x, y):
     fig = px.scatter(
         df,
         x=x,
         y=y,
         trendline="ols",
-        title=f"Scatter Plot: {x} vs {y}",
-        template="plotly_dark"
     )
+    _apply_dark_layout(fig, f"Scatter Plot: {x} vs {y}")
     st.plotly_chart(fig, use_container_width=True)
 
 
-# ============================================
-#  CORRELATION HEATMAP (Interactive)
-# ============================================
+# ============================================================
+# CORRELATION HEATMAP (Interactive)
+# ============================================================
 def plot_corr_heatmap(df, cols):
     corr = df[cols].corr()
 
@@ -60,22 +76,21 @@ def plot_corr_heatmap(df, cols):
             x=corr.columns,
             y=corr.columns,
             colorscale="RdBu",
-            reversescale=True
+            reversescale=True,
+            zmin=-1, zmax=1,
+            hoverongaps=False
         )
     )
 
-    fig.update_layout(
-        title="Correlation Heatmap",
-        template="plotly_dark",
-        height=500
-    )
+    _apply_dark_layout(fig, "Correlation Heatmap")
+    fig.update_layout(height=500)
 
     st.plotly_chart(fig, use_container_width=True)
 
 
-# ============================================
-#  BAR CHART (Value Counts)
-# ============================================
+# ============================================================
+# BAR CHART (Value Counts)
+# ============================================================
 def plot_bar(df, column):
     vc = df[column].value_counts().reset_index()
     vc.columns = [column, "Count"]
@@ -85,31 +100,34 @@ def plot_bar(df, column):
         x=column,
         y="Count",
         text="Count",
-        title=f"Value Counts: {column}",
-        template="plotly_dark"
     )
 
-    fig.update_traces(textposition="outside")
+    fig.update_traces(
+        textposition="outside",
+        marker=dict(line=dict(color="white", width=1))
+    )
+
+    _apply_dark_layout(fig, f"Value Counts: {column}")
 
     st.plotly_chart(fig, use_container_width=True)
 
 
-# ============================================
-#  PAIRPLOT — Upgraded to Plotly Scatter Matrix
-# ============================================
+# ============================================================
+# PAIRPLOT — Plotly Scatter Matrix
+# ============================================================
 def plot_pairplot(df, cols):
     if len(cols) < 2:
         st.warning("Select at least two columns for pairplot.")
         return
 
     fig = px.scatter_matrix(
-        df[cols],
+        df,
         dimensions=cols,
-        title="Scatter Matrix (Pairplot Alternative)",
-        template="plotly_dark"
     )
 
     fig.update_traces(diagonal_visible=False)
-    fig.update_layout(height=800)
 
+    _apply_dark_layout(fig, "Scatter Matrix (Pairplot Alternative)")
+
+    fig.update_layout(height=800)
     st.plotly_chart(fig, use_container_width=True)
