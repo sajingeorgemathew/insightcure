@@ -1,5 +1,6 @@
 import io
 import datetime
+import os   # ✅ NEW (required for logo check)
 
 import streamlit as st
 import pandas as pd
@@ -13,6 +14,7 @@ from reportlab.platypus import (
     Spacer,
     Table,
     TableStyle,
+    Image   # ✅ NEW (for logo)
 )
 
 from modules.theme import load_theme
@@ -58,36 +60,53 @@ This page generates a **structured PDF report** summarizing:
 """
 )
 
-# ------------- Helper: build PDF in memory -------------
+
+# ---------------- PDF BUILDER ----------------
 def build_pdf_report() -> bytes:
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4)
     styles = getSampleStyleSheet()
     story = []
 
-    # ---- Title ----
+    # ======================================================
+    #   ✅ ADD LOGO SAFELY (TOP OF REPORT)
+    # ======================================================
+    logo_path = "static/logo.png"
+
+    if os.path.exists(logo_path):
+        try:
+            logo = Image(logo_path, width=140, height=60)
+            story.append(logo)
+            story.append(Spacer(1, 12))
+        except Exception:
+            # fail silently but proceed
+            pass
+
+    # ======================================================
+    #   TITLE
+    # ======================================================
     title = f"InsightCure Analytics Report – {dataset_name}"
     story.append(Paragraph(title, styles["Title"]))
     story.append(Spacer(1, 12))
 
-    # ---- Meta ----
+    # Metadata
     now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
     story.append(Paragraph(f"Generated on: {now_str}", styles["Normal"]))
     story.append(Paragraph(f"Task Type: {task_type.title()}", styles["Normal"]))
     story.append(Paragraph(f"Best Model: {best_model_name}", styles["Normal"]))
     story.append(Spacer(1, 12))
 
-    # ---- Dataset Overview ----
+    # ======================================================
+    #   1. Dataset Overview
+    # ======================================================
     story.append(Paragraph("<b>1. Dataset Overview</b>", styles["Heading2"]))
     n_rows, n_cols = df.shape
     story.append(Paragraph(f"Dataset: {dataset_name}", styles["Normal"]))
     story.append(Paragraph(f"Rows: {n_rows}", styles["Normal"]))
     story.append(Paragraph(f"Columns: {n_cols}", styles["Normal"]))
 
-    # Column types
     col_info = df.dtypes.reset_index()
     col_info.columns = ["Column", "Dtype"]
-    # Only show first 12 for brevity
     col_info = col_info.head(12)
 
     data = [["Column", "Type"]] + col_info.values.tolist()
@@ -108,54 +127,45 @@ def build_pdf_report() -> bytes:
     story.append(table)
     story.append(Spacer(1, 12))
 
-    # ---- Model Summary ----
+    # ======================================================
+    #   2. Model Summary
+    # ======================================================
     story.append(Paragraph("<b>2. Model Summary</b>", styles["Heading2"]))
     story.append(Paragraph(f"Target variable: <b>{target}</b>", styles["Normal"]))
-    story.append(
-        Paragraph(
-            f"Number of features used: <b>{len(features)}</b>", styles["Normal"]
-        )
-    )
+    story.append(Paragraph(f"Number of features used: <b>{len(features)}</b>", styles["Normal"]))
 
     if features:
-        story.append(
-            Paragraph(
-                "Features: " + ", ".join([str(f) for f in features]), styles["Normal"]
-            )
-        )
+        story.append(Paragraph("Features: " + ", ".join(features), styles["Normal"]))
 
     story.append(Spacer(1, 6))
     story.append(Paragraph("<b>Model Metrics</b>", styles["Heading3"]))
 
-    # Flatten metrics dict into table: Model | Metric | Value
     metrics_rows = [["Model", "Metric", "Value"]]
     for model_name, metric_dict in metrics.items():
         for metric_name, value in metric_dict.items():
             metrics_rows.append(
-                [model_name, metric_name, f"{value:.4f}" if isinstance(value, (int, float)) else str(value)]
+                [model_name, metric_name, f"{value:.4f}" if isinstance(value, (float, int)) else str(value)]
             )
 
-    if len(metrics_rows) > 1:
-        metrics_table = Table(metrics_rows, hAlign="LEFT")
-        metrics_table.setStyle(
-            TableStyle(
-                [
-                    ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
-                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
-                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                    ("ALIGN", (0, 0), (-1, -1), "LEFT"),
-                    ("GRID", (0, 0), (-1, -1), 0.25, colors.black),
-                    ("BACKGROUND", (0, 1), (-1, -1), colors.whitesmoke),
-                ]
-            )
+    metrics_table = Table(metrics_rows, hAlign="LEFT")
+    metrics_table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+                ("GRID", (0, 0), (-1, -1), 0.25, colors.black),
+                ("BACKGROUND", (0, 1), (-1, -1), colors.whitesmoke),
+            ]
         )
-        story.append(metrics_table)
-    else:
-        story.append(Paragraph("No metrics available.", styles["Normal"]))
-
+    )
+    story.append(metrics_table)
     story.append(Spacer(1, 12))
 
-    # ---- Feature Engineering Insights ----
+    # ======================================================
+    #   3. Feature Engineering Insights
+    # ======================================================
     story.append(Paragraph("<b>3. Feature Engineering Insights</b>", styles["Heading2"]))
 
     try:
@@ -164,120 +174,49 @@ def build_pdf_report() -> bytes:
 
             # High MI
             story.append(Paragraph("<b>High Importance Features:</b>", styles["Heading3"]))
-            high_mi = suggestions.get("high_mi_features", [])
-            if high_mi:
-                for item in high_mi:
-                    story.append(
-                        Paragraph(
-                            f"- {item.get('feature')} (MI={item.get('mi'):.4f})",
-                            styles["Normal"],
-                        )
-                    )
-            else:
-                story.append(Paragraph("- None detected.", styles["Normal"]))
-            story.append(Spacer(1, 4))
+            for item in suggestions.get("high_mi_features", []):
+                story.append(Paragraph(f"- {item['feature']} (MI={item['mi']:.4f})", styles["Normal"]))
 
             # Low MI
             story.append(Paragraph("<b>Low Importance Features:</b>", styles["Heading3"]))
-            low_mi = suggestions.get("low_mi_features", [])
-            if low_mi:
-                for item in low_mi:
-                    story.append(
-                        Paragraph(
-                            f"- {item.get('feature')} (MI={item.get('mi'):.4f})",
-                            styles["Normal"],
-                        )
-                    )
-            else:
-                story.append(Paragraph("- None detected.", styles["Normal"]))
-            story.append(Spacer(1, 4))
+            for item in suggestions.get("low_mi_features", []):
+                story.append(Paragraph(f"- {item['feature']} (MI={item['mi']:.4f})", styles["Normal"]))
 
-            # Missing values
+            # Missing Values
             story.append(Paragraph("<b>Missing Value Warnings:</b>", styles["Heading3"]))
-            mv_list = suggestions.get("missing_value_warnings", [])
-            if mv_list:
-                for txt in mv_list:
-                    story.append(Paragraph(f"- {txt}", styles["Normal"]))
-            else:
-                story.append(Paragraph("- No missing value issues detected.", styles["Normal"]))
-            story.append(Spacer(1, 4))
+            for txt in suggestions.get("missing_value_warnings", []):
+                story.append(Paragraph(f"- {txt}", styles["Normal"]))
 
-            # High cardinality
-            story.append(
-                Paragraph("<b>High Cardinality Columns:</b>", styles["Heading3"])
-            )
-            hc = suggestions.get("high_cardinality", [])
-            if hc:
-                for txt in hc:
-                    story.append(Paragraph(f"- {txt}", styles["Normal"]))
-            else:
-                story.append(Paragraph("- No high-cardinality issues detected.", styles["Normal"]))
-            story.append(Spacer(1, 4))
+            # High Cardinality
+            story.append(Paragraph("<b>High Cardinality Columns:</b>", styles["Heading3"]))
+            for txt in suggestions.get("high_cardinality", []):
+                story.append(Paragraph(f"- {txt}", styles["Normal"]))
 
-            # Zero variance
+            # Zero Variance
             story.append(Paragraph("<b>Zero Variance Columns:</b>", styles["Heading3"]))
-            zv = suggestions.get("zero_variance", [])
-            if zv:
-                for txt in zv:
-                    story.append(Paragraph(f"- {txt}", styles["Normal"]))
-            else:
-                story.append(Paragraph("- No zero-variance columns detected.", styles["Normal"]))
-            story.append(Spacer(1, 4))
+            for txt in suggestions.get("zero_variance", []):
+                story.append(Paragraph(f"- {txt}", styles["Normal"]))
 
-            # General recommendations
-            story.append(
-                Paragraph("<b>General Recommendations:</b>", styles["Heading3"])
-            )
-            recs = suggestions.get("general_recommendations", [])
-            if recs:
-                for txt in recs:
-                    story.append(Paragraph(f"- {txt}", styles["Normal"]))
-            story.append(Spacer(1, 12))
+            # Recommendations
+            story.append(Paragraph("<b>General Recommendations:</b>", styles["Heading3"]))
+            for txt in suggestions.get("general_recommendations", []):
+                story.append(Paragraph(f"- {txt}", styles["Normal"]))
 
-        else:
-            story.append(
-                Paragraph(
-                    "Feature engineering insights could not be generated (missing features or target).",
-                    styles["Normal"],
-                )
-            )
             story.append(Spacer(1, 12))
 
     except Exception as e:
-        story.append(
-            Paragraph(
-                f"Feature engineering analysis failed: {e}", styles["Normal"]
-            )
-        )
+        story.append(Paragraph(f"Feature engineering analysis failed: {e}", styles["Normal"]))
         story.append(Spacer(1, 12))
 
-    # ---- Key Business Takeaways ----
+    # ======================================================
+    #   4. Key Takeaways
+    # ======================================================
     story.append(Paragraph("<b>4. Key Takeaways</b>", styles["Heading2"]))
-    story.append(
-        Paragraph(
-            "This model training run demonstrates how InsightCure can quickly "
-            "ingest a structured dataset, detect the appropriate task type, benchmark "
-            "multiple models, and surface the best-performing approach for the selected target.",
-            styles["Normal"],
-        )
-    )
-    story.append(Spacer(1, 6))
-    story.append(
-        Paragraph(
-            "The feature engineering analysis highlights which variables drive the target most, "
-            "where data quality improvements are needed, and which columns may be removed or transformed "
-            "to simplify the model while maintaining performance.",
-            styles["Normal"],
-        )
-    )
-    story.append(Spacer(1, 6))
-    story.append(
-        Paragraph(
-            "These insights can guide follow-up experimentation, support stakeholder communication, "
-            "and serve as a starting point for productionizing the ML pipeline.",
-            styles["Normal"],
-        )
-    )
+    story.append(Paragraph(
+        "InsightCure successfully ingests datasets, benchmarks multiple models, "
+        "and provides automated feature engineering suggestions to guide the ML workflow.",
+        styles["Normal"],
+    ))
 
     doc.build(story)
     pdf = buffer.getvalue()
@@ -285,7 +224,9 @@ def build_pdf_report() -> bytes:
     return pdf
 
 
-# ----------------- UI: Generate & Download -----------------
+# ======================================================
+#   DOWNLOAD UI
+# ======================================================
 if st.button("Generate PDF Report"):
     with st.spinner("Building PDF report..."):
         pdf_bytes = build_pdf_report()
