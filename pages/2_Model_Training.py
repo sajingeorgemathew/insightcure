@@ -1,5 +1,8 @@
 import streamlit as st
-from modules.modeling import train_models, generate_feature_engineering_suggestions
+from modules.modeling import (
+    train_models,
+    generate_feature_engineering_suggestions
+)
 from modules.theme import load_theme
 
 load_theme()
@@ -18,33 +21,34 @@ df = st.session_state.active_dataset
 
 st.title("🤖 Model Training")
 
-# ---------------- TARGET + FEATURE SELECTION ----------------
-st.subheader("Select Target & Features")
+# ===============================================================
+# 1️⃣ TARGET SELECTION (ALWAYS FIRST STEP)
+# ===============================================================
+st.subheader("Select Target Column")
 
 target = st.selectbox("Target Column", df.columns)
-features = st.multiselect("Feature Columns", [c for c in df.columns if c != target])
-
-# Save persistent choices
 st.session_state["target_column"] = target
-st.session_state["feature_columns"] = features
 
 # ===============================================================
-# 🔍 NEW: FEATURE ENGINEERING SUGGESTION BUTTON
+# 2️⃣ FEATURE ENGINEERING SUGGESTIONS (BEFORE feature selection)
 # ===============================================================
-st.markdown("### 🧠 Feature Engineering Suggestions")
+st.markdown("### 🧠 Automated Feature Engineering Suggestions")
 
 if st.button("Generate Feature Engineering Suggestions"):
-    if len(features) == 0:
-        st.error("Please select at least one feature to analyze.")
-        st.stop()
-
-    with st.spinner("Analyzing features..."):
-        suggestions = generate_feature_engineering_suggestions(df, target, features)
+    with st.spinner("Analyzing dataset…"):
+        suggestions, mi_df = generate_feature_engineering_suggestions(df, target)
 
     st.success("Feature Engineering Suggestions Ready")
 
-    # -------- Display Suggestions in Expanders --------
-    with st.expander("🔥 High Importance Features (Mutual Information)"):
+    # -------- Show MI Table --------
+    st.write("### 🔍 Mutual Information Ranking")
+    if not mi_df.empty:
+        st.dataframe(mi_df)
+    else:
+        st.info("MI could not be computed for this dataset.")
+
+    # -------- Display Suggestion Groups --------
+    with st.expander("🔥 High Importance Features"):
         st.write(suggestions["high_mi_features"])
 
     with st.expander("🧊 Low Importance Features"):
@@ -60,13 +64,13 @@ if st.button("Generate Feature Engineering Suggestions"):
         if suggestions["missing_value_warnings"]:
             st.write(suggestions["missing_value_warnings"])
         else:
-            st.write("No missing value issues detected.")
+            st.write("No missing value issues found.")
 
     with st.expander("📦 High Cardinality Categorical Columns"):
         if suggestions["high_cardinality"]:
             st.write(suggestions["high_cardinality"])
         else:
-            st.write("No high-cardinality issues found.")
+            st.write("No high-cardinality columns detected.")
 
     with st.expander("🚫 Zero Variance Columns"):
         if suggestions["zero_variance"]:
@@ -77,26 +81,39 @@ if st.button("Generate Feature Engineering Suggestions"):
     with st.expander("💡 General Recommendations"):
         st.write(suggestions["general_recommendations"])
 
+# ===============================================================
+# 3️⃣ FEATURE SELECTION (AFTER suggestions)
+# ===============================================================
+st.subheader("Select Features for Model Training")
+
+default_features = [c for c in df.columns if c != target]
+features = st.multiselect("Feature Columns", default_features)
+
+st.session_state["feature_columns"] = features
 
 # ===============================================================
-# TRAIN MODEL (UNMODIFIED LOGIC)
+# 4️⃣ TRAIN MODEL (UNCHANGED LOGIC)
 # ===============================================================
 st.subheader("Train the Model")
 
 if st.button("Train Model"):
     if len(features) == 0:
-        st.error("Select at least one feature.")
+        st.error("Select at least one feature before training.")
         st.stop()
 
     with st.spinner("Training models..."):
         model_state = train_models(df, target, features)
 
-    # Save in session
+    # Persist model state
     st.session_state["model_state"] = model_state
-    st.session_state["model_state"]["dataset_name"] = st.session_state.get("active_dataset_name", "Dataset")
+    st.session_state["model_state"]["dataset_name"] = st.session_state.get(
+        "active_dataset_name", "Dataset"
+    )
     st.session_state["model_state"]["target"] = target
     st.session_state["model_state"]["features"] = features
-    st.session_state["model_state"]["model_name"] = model_state.get("best_model_name", "Unknown Model")
+    st.session_state["model_state"]["model_name"] = model_state.get(
+        "best_model_name", "Unknown Model"
+    )
 
     st.success(f"Model trained successfully! Best model: {model_state['best_model_name']}")
 

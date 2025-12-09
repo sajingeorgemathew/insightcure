@@ -14,18 +14,15 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from xgboost import XGBClassifier, XGBRegressor
 
 
-# ============================================================
-#  NEW FEATURE ENGINEERING SUGGESTION ENGINE  (SAFE ADDITION)
-# ============================================================
+# =====================================================================
+#  ⚡ FIXED + SAFE FEATURE ENGINEERING SUGGESTION ENGINE
+# =====================================================================
 
-def generate_feature_engineering_suggestions(df: pd.DataFrame, target_col: str, feature_cols: list):
+def generate_feature_engineering_suggestions(df: pd.DataFrame, target_col: str):
     """
-    Generates automated feature engineering suggestions based on:
-    - Mutual Information
-    - Correlation
-    - Missing values
-    - Feature cardinality
-    - Zero variance features
+    Compute suggestions BEFORE feature selection.
+    Works on the full dataset.
+    Fully protected from datetime errors, object errors, etc.
     """
 
     suggestions = {
@@ -38,102 +35,137 @@ def generate_feature_engineering_suggestions(df: pd.DataFrame, target_col: str, 
         "general_recommendations": []
     }
 
-    df_clean = df[feature_cols + [target_col]].dropna(subset=[target_col])
+    # ---------------------------
+    # INITIAL VALIDATION
+    # ---------------------------
+    if target_col not in df.columns:
+        return suggestions, pd.DataFrame()
 
-    # ---------------------------
-    # Detect Task Type
-    # ---------------------------
-    task_type = detect_task_type(df[target_col])
+    df_clean = df.dropna(subset=[target_col]).copy()
+    task_type = detect_task_type(df_clean[target_col])
 
-    # ---------------------------
-    # Compute Mutual Information
-    # ---------------------------
-    X = df_clean[feature_cols]
+    # ---------------------------------------------------------
+    # 1️⃣ PREPARE FEATURES — remove datetime and target column
+    # ---------------------------------------------------------
+    all_features = [c for c in df_clean.columns if c != target_col]
+
+    safe_features = []
+    for col in all_features:
+        if np.issubdtype(df_clean[col].dtype, np.datetime64):
+            continue
+        safe_features.append(col)
+
+    # If nothing left → return minimal suggestions
+    if len(safe_features) == 0:
+        return suggestions, pd.DataFrame()
+
+    X = df_clean[safe_features]
     y = df_clean[target_col]
 
+    # ---------------------------------------------------------
+    # 2️⃣ SAFE ENCODING (factorize only object columns)
+    # ---------------------------------------------------------
     X_encoded = pd.DataFrame(index=X.index)
-    for col in feature_cols:
-        if X[col].dtype == "object":
-            X_encoded[col], _ = X[col].factorize()
+    for col in safe_features:
+        try:
+            if X[col].dtype == "object":
+                X_encoded[col], _ = X[col].factorize()
+            else:
+                X_encoded[col] = pd.to_numeric(X[col], errors="ignore")
+        except:
+            # Skip columns that cannot be encoded
+            continue
+
+    # Drop any columns that failed encoding
+    X_encoded = X_encoded.select_dtypes(include=[np.number])
+
+    # ---------------------------------------------------------
+    # 3️⃣ MUTUAL INFORMATION (safe)
+    # ---------------------------------------------------------
+    try:
+        if task_type == "classification":
+            mi = mutual_info_classif(X_encoded, y, random_state=42)
         else:
-            X_encoded[col] = X[col]
+            mi = mutual_info_regression(X_encoded, y, random_state=42)
 
-    if task_type == "classification":
-        mi = mutual_info_classif(X_encoded, y, discrete_features="auto", random_state=42)
-    else:
-        mi = mutual_info_regression(X_encoded, y, random_state=42)
+        mi_df = pd.DataFrame({
+            "feature": X_encoded.columns,
+            "mi": mi
+        }).sort_values("mi", ascending=False)
 
-    mi_df = pd.DataFrame({"feature": feature_cols, "mi": mi}).sort_values("mi", ascending=False)
+    except Exception:
+        mi_df = pd.DataFrame(columns=["feature", "mi"])
 
-    # High importance features
-    suggestions["high_mi_features"] = mi_df.head(5).to_dict(orient="records")
+    # Save top & bottom MI
+    if not mi_df.empty:
+        suggestions["high_mi_features"] = mi_df.head(5).to_dict(orient="records")
+        suggestions["low_mi_features"] = mi_df.tail(5).to_dict(orient="records")
 
-    # Low importance features
-    suggestions["low_mi_features"] = mi_df.tail(5).to_dict(orient="records")
-
-    # ---------------------------
-    # Correlation Heatmap Data
-    # ---------------------------
+    # ---------------------------------------------------------
+    # 4️⃣ CORRELATION DETECTION
+    # ---------------------------------------------------------
     numeric_df = df_clean.select_dtypes(include=np.number)
+    corr_pairs = []
 
-    corr_matrix = numeric_df.corr()
-    high_corr_pairs = []
+    if numeric_df.shape[1] > 1:
+        corr_matrix = numeric_df.corr()
 
-    for col1 in corr_matrix.columns:
-        for col2 in corr_matrix.columns:
-            if col1 != col2 and abs(corr_matrix.loc[col1, col2]) > 0.8:
-                high_corr_pairs.append((col1, col2, corr_matrix.loc[col1, col2]))
+        for c1 in corr_matrix.columns:
+            for c2 in corr_matrix.columns:
+                if c1 < c2:
+                    if abs(corr_matrix.loc[c1, c2]) > 0.80:
+                        corr_pairs.append((c1, c2, corr_matrix.loc[c1, c2]))
 
-    suggestions["high_correlation_pairs"] = high_corr_pairs
+    suggestions["high_correlation_pairs"] = corr_pairs
 
-    # ---------------------------
-    # Missing Values
-    # ---------------------------
+    # ---------------------------------------------------------
+    # 5️⃣ MISSING VALUES
+    # ---------------------------------------------------------
     missing = df_clean.isna().sum()
 
-    for col in missing.index:
-        if missing[col] > 0:
+    for col, val in missing.items():
+        if val > 0:
             suggestions["missing_value_warnings"].append(
-                f"Column '{col}' has {missing[col]} missing values. Consider imputation."
+                f"Column '{col}' has {val} missing values. Consider imputation."
             )
 
-    # ---------------------------
-    # Cardinality Check
-    # ---------------------------
-    for col in feature_cols:
-        if df[col].dtype == "object":
-            unique_vals = df[col].nunique()
-            if unique_vals > 30:
+    # ---------------------------------------------------------
+    # 6️⃣ HIGH CARDINALITY
+    # ---------------------------------------------------------
+    for col in safe_features:
+        if df_clean[col].dtype == "object":
+            if df_clean[col].nunique() > 30:
                 suggestions["high_cardinality"].append(
-                    f"Column '{col}' has high cardinality ({unique_vals} unique values). Consider frequency encoding."
+                    f"Column '{col}' has very high cardinality ({df_clean[col].nunique()} unique values)."
                 )
 
-    # ---------------------------
-    # Zero Variance / Constant Features
-    # ---------------------------
-    for col in feature_cols:
-        if df[col].nunique() <= 1:
+    # ---------------------------------------------------------
+    # 7️⃣ ZERO VARIANCE
+    # ---------------------------------------------------------
+    for col in safe_features:
+        if df_clean[col].nunique() <= 1:
             suggestions["zero_variance"].append(
-                f"Column '{col}' has zero variance (constant). Remove it."
+                f"Column '{col}' has zero variance — remove it."
             )
 
-    # ---------------------------
-    # General Recommendations
-    # ---------------------------
+    # ---------------------------------------------------------
+    # 8️⃣ GENERAL TIPS
+    # ---------------------------------------------------------
     suggestions["general_recommendations"] = [
-        "Consider scaling numeric variables (StandardScaler).",
-        "If date columns exist, extract Year, Month, Day, Week features.",
-        "Create interaction features for highly correlated pairs.",
-        "Use log-transform or Box-Cox on skewed numeric features.",
-        "Encode categorical features with One-Hot or Frequency Encoding."
+        "Scale numeric features using StandardScaler.",
+        "Extract Year / Month / Day from dates (if any).",
+        "Try interaction features between highly correlated variables.",
+        "Apply log-transform on skewed numeric features.",
+        "Encode categorical values using One-Hot or Frequency Encoding.",
     ]
 
-    return suggestions
+    return suggestions, mi_df
 
 
-# ============================================================
-#  ORIGINAL FUNCTIONS — UNCHANGED BELOW THIS LINE
-# ============================================================
+
+# =====================================================================
+#  ORIGINAL FUNCTIONS (unchanged)
+# =====================================================================
 
 def detect_task_type(y: pd.Series) -> str:
     if y.dtype == "object" or y.nunique() < 20:
@@ -155,13 +187,12 @@ def build_preprocessor(X: pd.DataFrame) -> ColumnTransformer:
         ("encoder", OneHotEncoder(handle_unknown="ignore"))
     ])
 
-    preprocessor = ColumnTransformer(
+    return ColumnTransformer(
         transformers=[
             ("num", numeric_transformer, numeric_cols),
             ("cat", categorical_transformer, categorical_cols),
         ]
     )
-    return preprocessor
 
 
 def get_models(task_type: str):
@@ -239,6 +270,10 @@ def compute_mutual_information(df: pd.DataFrame, target_col: str, feature_cols: 
     df_mi = df[feature_cols + [target_col]].copy()
     df_mi = df_mi.dropna(subset=[target_col])
 
+    # remove any datetime
+    dt = df_mi.select_dtypes(include=["datetime64[ns]"]).columns
+    df_mi = df_mi.drop(columns=dt, errors="ignore")
+
     X = df_mi[feature_cols]
     y = df_mi[target_col]
 
@@ -250,10 +285,9 @@ def compute_mutual_information(df: pd.DataFrame, target_col: str, feature_cols: 
             X_encoded[col] = X[col]
 
     if task_type == "classification":
-        mi = mutual_info_classif(X_encoded, y, discrete_features="auto", random_state=42)
+        mi = mutual_info_classif(X_encoded, y, random_state=42)
     else:
         mi = mutual_info_regression(X_encoded, y, random_state=42)
 
     mi_df = pd.DataFrame({"feature": feature_cols, "mutual_information": mi})
-    mi_df = mi_df.sort_values("mutual_information", ascending=False)
-    return mi_df
+    return mi_df.sort_values("mutual_information", ascending=False)
