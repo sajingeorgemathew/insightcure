@@ -47,7 +47,7 @@ st.markdown(f"""
 """)
 
 if st.button("Generate AI Insight"):
-    with st.spinner("Contacting OpenAI... interpreting your model..."):
+    with st.spinner("Interpreting your model..."):
         insight = generate_insight(
             task_type=task_type,
             target=target,
