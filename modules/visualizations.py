@@ -9,26 +9,29 @@ from modules.modeling import compute_mutual_information
 
 
 # ======================================================
-#  GLOBAL DARK TRANSPARENT PLOTLY LAYOUT
+# Reusable Plotly Dark Styling
 # ======================================================
-def _apply_dark_style(fig, title: str):
+def apply_dark_style(fig):
     fig.update_layout(
-        title=title,
-        template="plotly_dark",
-        paper_bgcolor="rgba(0,0,0,0)",    # Transparent background
-        plot_bgcolor="rgba(0,0,0,0)",     # Transparent plot region
-        font=dict(color="white"),
-        title_font=dict(color="white", size=20),
-        legend=dict(
-            font=dict(color="white"),
-            bgcolor="rgba(0,0,0,0)"
-        )
+        plot_bgcolor="rgba(0,0,0,0)",    # transparent background
+        paper_bgcolor="rgba(0,0,0,0)",
+        font_color="white",
+        title_font_color="white",
+        xaxis=dict(
+            color="white",
+            title_font=dict(color="white")
+        ),
+        yaxis=dict(
+            color="white",
+            title_font=dict(color="white")
+        ),
+        legend=dict(font=dict(color="white"))
     )
     return fig
 
 
 # ======================================================
-#   DATASET OVERVIEW CARDS (UNCHANGED)
+# DATASET OVERVIEW CARDS (UNCHANGED)
 # ======================================================
 def render_dataset_overview_cards(df: pd.DataFrame, name: str):
     col1, col2, col3, col4 = st.columns(4)
@@ -48,7 +51,7 @@ def render_dataset_overview_cards(df: pd.DataFrame, name: str):
 
 
 # ======================================================
-#   TIME SERIES (Plotly)
+# TIME SERIES (Plotly)
 # ======================================================
 def render_time_series(df: pd.DataFrame, target: str):
     date_cols = [c for c in df.columns if "date" in c.lower()]
@@ -65,16 +68,23 @@ def render_time_series(df: pd.DataFrame, target: str):
         if target in df_plot.columns:
             st.subheader(f"{target} over time ({date_col})")
 
-            fig = px.line(df_plot, x=date_col, y=target)
-            _apply_dark_style(fig, f"{target} Time Series")
+            fig = px.line(
+                df_plot,
+                x=date_col,
+                y=target,
+                title=f"{target} Time Series",
+                template="plotly_dark"
+            )
 
+            apply_dark_style(fig)
             st.plotly_chart(fig, use_container_width=True)
+
     except Exception:
         pass
 
 
 # ======================================================
-#   MODEL VISUALS → Regression & Classification
+# MODEL VISUALS — Regression & Classification
 # ======================================================
 def render_model_visuals(model_state: dict):
     task_type = model_state["task_type"]
@@ -92,12 +102,15 @@ def render_model_visuals(model_state: dict):
         fig = px.scatter(
             x=y_test,
             y=y_pred,
-            labels={"x": "Actual", "y": "Predicted"}
+            labels={"x": "Actual", "y": "Predicted"},
+            title="Predicted vs Actual",
+            template="plotly_dark"
         )
 
-        # Perfect fit line
+        # Perfect Fit Line
         min_val = min(min(y_test), min(y_pred))
         max_val = max(max(y_test), max(y_pred))
+
         fig.add_trace(
             go.Scatter(
                 x=[min_val, max_val],
@@ -108,7 +121,7 @@ def render_model_visuals(model_state: dict):
             )
         )
 
-        _apply_dark_style(fig, "Predicted vs Actual")
+        apply_dark_style(fig)
         st.plotly_chart(fig, use_container_width=True)
 
     # ---------------------------
@@ -126,18 +139,21 @@ def render_model_visuals(model_state: dict):
                 colorscale="Blues",
                 text=cm,
                 texttemplate="%{text}",
-                showscale=True
             )
         )
 
-        _apply_dark_style(fig, "Confusion Matrix")
-        fig.update_xaxes(title="Predicted")
-        fig.update_yaxes(title="Actual")
+        fig.update_layout(
+            title="Confusion Matrix",
+            xaxis_title="Predicted",
+            yaxis_title="Actual",
+            template="plotly_dark"
+        )
 
+        apply_dark_style(fig)
         st.plotly_chart(fig, use_container_width=True)
 
     # ======================================================
-    # FEATURE IMPORTANCE (Permutation Importance)
+    # PERMUTATION FEATURE IMPORTANCE
     # ======================================================
     st.subheader("Feature Importance (Permutation)")
 
@@ -152,17 +168,18 @@ def render_model_visuals(model_state: dict):
         }).sort_values("importance", ascending=False)
 
         st.dataframe(importance_df.head(10))
-
         top10 = importance_df.head(10)
 
         fig = px.bar(
             top10,
             x="importance",
             y="feature",
-            orientation="h"
+            orientation="h",
+            title="Top 10 Features",
+            template="plotly_dark"
         )
 
-        _apply_dark_style(fig, "Top 10 Features (Permutation Importance)")
+        apply_dark_style(fig)
         fig.update_layout(height=500)
 
         st.plotly_chart(fig, use_container_width=True)
@@ -172,7 +189,7 @@ def render_model_visuals(model_state: dict):
 
 
 # ======================================================
-#   MUTUAL INFORMATION (Plotly)
+# MUTUAL INFORMATION VISUALIZATION
 # ======================================================
 def render_mutual_information(df: pd.DataFrame, model_state: dict):
     task_type = model_state["task_type"]
@@ -196,16 +213,17 @@ def render_mutual_information(df: pd.DataFrame, model_state: dict):
         x="mutual_information",
         y="feature",
         orientation="h",
-        labels={"mutual_information": "Mutual Information"}
+        labels={"mutual_information": "Mutual Information"},
+        title=f"Top 10 Features by Mutual Information ({best_model_name})",
+        template="plotly_dark"
     )
 
-    _apply_dark_style(fig, f"Top MI Features ({best_model_name})")
-
+    apply_dark_style(fig)
     st.plotly_chart(fig, use_container_width=True)
 
 
 # ======================================================
-#   BASIC STAT CARDS (unchanged)
+# BASIC STATS (unchanged)
 # ======================================================
 def render_basic_stats_cards(df: pd.DataFrame, column: str):
     series = df[column].dropna()
