@@ -1,47 +1,68 @@
 import streamlit as st
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from modules.modeling import compute_mutual_information
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+import plotly.express as px
+import plotly.graph_objects as go
+from sklearn.metrics import confusion_matrix
 from sklearn.inspection import permutation_importance
+from modules.modeling import compute_mutual_information
 
 
+# ======================================================
+#   DATASET OVERVIEW CARDS (UNCHANGED)
+# ======================================================
 def render_dataset_overview_cards(df: pd.DataFrame, name: str):
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
-        st.markdown('<div class="card"><div class="card-title">Dataset</div>'
+        st.markdown(f'<div class="card"><div class="card-title">Dataset</div>'
                     f'<div class="card-value">{name}</div></div>', unsafe_allow_html=True)
     with col2:
-        st.markdown('<div class="card"><div class="card-title">Rows</div>'
+        st.markdown(f'<div class="card"><div class="card-title">Rows</div>'
                     f'<div class="card-value">{df.shape[0]}</div></div>', unsafe_allow_html=True)
     with col3:
-        st.markdown('<div class="card"><div class="card-title">Columns</div>'
+        st.markdown(f'<div class="card"><div class="card-title">Columns</div>'
                     f'<div class="card-value">{df.shape[1]}</div></div>', unsafe_allow_html=True)
     with col4:
-        st.markdown('<div class="card"><div class="card-title">Missing Values</div>'
+        st.markdown(f'<div class="card"><div class="card-title">Missing Values</div>'
                     f'<div class="card-value">{int(df.isna().sum().sum())}</div></div>', unsafe_allow_html=True)
 
 
+# ======================================================
+#   TIME SERIES (Plotly)
+# ======================================================
 def render_time_series(df: pd.DataFrame, target: str):
     date_cols = [c for c in df.columns if "date" in c.lower()]
     if not date_cols:
         return
 
     date_col = date_cols[0]
+
     try:
         df_plot = df.copy()
         df_plot[date_col] = pd.to_datetime(df_plot[date_col], errors="coerce")
         df_plot = df_plot.sort_values(by=date_col)
-        df_plot = df_plot.set_index(date_col)
+
         if target in df_plot.columns:
             st.subheader(f"{target} over time ({date_col})")
-            st.line_chart(df_plot[target])
+
+            fig = px.line(
+                df_plot,
+                x=date_col,
+                y=target,
+                title=f"{target} Time Series",
+                template="plotly_dark"
+            )
+
+            st.plotly_chart(fig, use_container_width=True)
+
     except Exception:
         pass
 
 
+# ======================================================
+#   MODEL VISUALS → Regression & Classification
+# ======================================================
 def render_model_visuals(model_state: dict):
     task_type = model_state["task_type"]
     X_test = model_state["X_test"]
@@ -49,73 +70,134 @@ def render_model_visuals(model_state: dict):
     y_pred = model_state["y_pred"]
     best_model_pipe = model_state["best_model_pipe"]
 
-    # Predictions vs Actual or Confusion Matrix
     st.subheader("Model Evaluation")
 
+    # ---------------------------
+    # Regression: Predicted vs Actual
+    # ---------------------------
     if task_type == "regression":
-        fig, ax = plt.subplots()
-        ax.scatter(y_test, y_pred, alpha=0.6)
-        min_val = min(y_test.min(), y_pred.min())
-        max_val = max(y_test.max(), y_pred.max())
-        ax.plot([min_val, max_val], [min_val, max_val], "r--")
-        ax.set_xlabel("Actual")
-        ax.set_ylabel("Predicted")
-        ax.set_title("Predicted vs Actual")
-        st.pyplot(fig)
-    else:
-        cm = confusion_matrix(y_test, y_pred, labels=np.unique(y_test))
-        fig, ax = plt.subplots()
-        disp = ConfusionMatrixDisplay(cm)
-        disp.plot(ax=ax, cmap="Blues", values_format="d", colorbar=False)
-        ax.set_title("Confusion Matrix")
-        st.pyplot(fig)
+        fig = px.scatter(
+            x=y_test,
+            y=y_pred,
+            labels={"x": "Actual", "y": "Predicted"},
+            title="Predicted vs Actual",
+            template="plotly_dark"
+        )
 
-    # Feature Importance
+        # Add reference diagonal
+        min_val = min(min(y_test), min(y_pred))
+        max_val = max(max(y_test), max(y_pred))
+
+        fig.add_trace(
+            go.Scatter(
+                x=[min_val, max_val],
+                y=[min_val, max_val],
+                mode="lines",
+                line=dict(color="red", dash="dash"),
+                name="Perfect Fit"
+            )
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+
+    # ---------------------------
+    # Classification: Confusion Matrix
+    # ---------------------------
+    else:
+        cm = confusion_matrix(y_test, y_pred)
+        labels = np.unique(y_test)
+
+        fig = go.Figure(
+            data=go.Heatmap(
+                z=cm,
+                x=labels,
+                y=labels,
+                colorscale="Blues",
+                text=cm,
+                texttemplate="%{text}",
+            )
+        )
+
+        fig.update_layout(
+            title="Confusion Matrix",
+            xaxis_title="Predicted",
+            yaxis_title="Actual",
+            template="plotly_dark"
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+
+    # ======================================================
+    # FEATURE IMPORTANCE (Permutation Importance)
+    # ======================================================
     st.subheader("Feature Importance (Permutation)")
+
     try:
         perm = permutation_importance(
             best_model_pipe, X_test, y_test, n_repeats=5, random_state=42
         )
-        importances = perm.importances_mean
-        feat_imp_df = pd.DataFrame({
+
+        importance_df = pd.DataFrame({
             "feature": X_test.columns,
-            "importance": importances
+            "importance": perm.importances_mean
         }).sort_values("importance", ascending=False)
 
-        st.dataframe(feat_imp_df.head(10))
+        st.dataframe(importance_df.head(10))
 
-        fig_imp, ax_imp = plt.subplots(figsize=(8, 4))
-        top_n = feat_imp_df.head(10)
-        ax_imp.barh(top_n["feature"], top_n["importance"])
-        ax_imp.invert_yaxis()
-        ax_imp.set_xlabel("Importance")
-        ax_imp.set_title("Top 10 Features")
-        st.pyplot(fig_imp)
+        top10 = importance_df.head(10)
+
+        fig = px.bar(
+            top10,
+            x="importance",
+            y="feature",
+            orientation="h",
+            title="Top 10 Features",
+            template="plotly_dark"
+        )
+
+        fig.update_layout(height=500)
+        st.plotly_chart(fig, use_container_width=True)
 
     except Exception as e:
         st.warning(f"Could not compute feature importance: {e}")
+
+
+# ======================================================
+#   MUTUAL INFORMATION VISUALIZATION (Plotly)
+# ======================================================
 def render_mutual_information(df: pd.DataFrame, model_state: dict):
     task_type = model_state["task_type"]
     target = model_state["target"]
     best_model_name = model_state["best_model_name"]
 
-    # Use same feature set as model used
     X_test = model_state["X_test"]
     feature_cols = list(X_test.columns)
 
     mi_df = compute_mutual_information(df, target, feature_cols, task_type)
 
     st.subheader("📎 Mutual Information Feature Importance")
-    st.write("This shows how much each feature reduces uncertainty about the target.")
+    st.write("This measures how much each feature reduces uncertainty about the target.")
 
     st.dataframe(mi_df.head(15))
 
-    fig, ax = plt.subplots(figsize=(8, 4))
-    top = mi_df.head(10).sort_values("mutual_information", ascending=True)
-    ax.barh(top["feature"], top["mutual_information"])
-    ax.set_xlabel("Mutual Information")
-    ax.set_title(f"Top 10 Features by Mutual Information ({best_model_name})")
-    st.pyplot(fig)
+    top10 = mi_df.head(10).sort_values("mutual_information", ascending=True)
+
+    fig = px.bar(
+        top10,
+        x="mutual_information",
+        y="feature",
+        orientation="h",
+        labels={"mutual_information": "Mutual Information"},
+        title=f"Top 10 Features by Mutual Information ({best_model_name})",
+        template="plotly_dark"
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+
+# ======================================================
+#   BASIC STAT CARDS (unchanged)
+# ======================================================
 def render_basic_stats_cards(df: pd.DataFrame, column: str):
     series = df[column].dropna()
     if series.empty:
@@ -130,15 +212,14 @@ def render_basic_stats_cards(df: pd.DataFrame, column: str):
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
-        st.markdown('<div class="card"><div class="card-title">Sum</div>'
+        st.markdown(f'<div class="card"><div class="card-title">Sum</div>'
                     f'<div class="card-value">{total:,.2f}</div></div>', unsafe_allow_html=True)
     with col2:
-        st.markdown('<div class="card"><div class="card-title">Average</div>'
+        st.markdown(f'<div class="card"><div class="card-title">Average</div>'
                     f'<div class="card-value">{mean:,.2f}</div></div>', unsafe_allow_html=True)
     with col3:
-        st.markdown('<div class="card"><div class="card-title">Min</div>'
+        st.markdown(f'<div class="card"><div class="card-title">Min</div>'
                     f'<div class="card-value">{minimum:,.2f}</div></div>', unsafe_allow_html=True)
     with col4:
-        st.markdown('<div class="card"><div class="card-title">Max</div>'
+        st.markdown(f'<div class="card"><div class="card-title">Max</div>'
                     f'<div class="card-value">{maximum:,.2f}</div></div>', unsafe_allow_html=True)
-
