@@ -108,6 +108,35 @@ def plot_category_numeric_heatmap(df, category_col, numeric_col, agg_func):
 
 
 # ============================================
+# CATEGORY VS NUMERIC HEATMAP
+# ============================================
+def plot_category_numeric_heatmap(df, category_col, numeric_col, agg_func):
+    grouped = df.groupby(category_col)[numeric_col].agg(agg_func).reset_index()
+    grouped = grouped.sort_values(numeric_col, ascending=False)
+
+    fig = go.Figure(
+        data=go.Heatmap(
+            z=[grouped[numeric_col]],
+            x=grouped[category_col],
+            y=[f"{agg_func} of {numeric_col}"],
+            colorscale="Viridis",
+        )
+    )
+
+    fig.update_layout(
+        title=f"{agg_func.title()} {numeric_col} by {category_col}",
+        template="plotly_dark",
+        height=300,
+        plot_bgcolor="rgba(30,30,30,1)",
+        paper_bgcolor="rgba(30,30,30,1)",
+        font_color="white",
+        title_font_color="white",
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+
+# ============================================
 # BAR CHART
 # ============================================
 def plot_bar(df, column):
