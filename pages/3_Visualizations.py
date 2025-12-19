@@ -82,10 +82,16 @@ with tab2:
 # ======================================================
 with tab3:
     st.subheader("Descriptive Analytics")
+    st.caption(
+        "Interpret buttons use summarized statistics (not full raw data or images) to generate "
+        "a client-friendly explanation."
+    )
 
     numeric_cols = df.select_dtypes(include="number").columns.tolist()
     categorical_cols = df.select_dtypes(include="object").columns.tolist()
 
+    def render_insight_button(chart_label, context_payload, button_key):
+        if st.button(f"Interpret {chart_label}", key=button_key):
     def render_insight_button(chart_label, context_payload):
         if st.button(f"Interpret {chart_label}"):
             with st.spinner("Generating interpretation..."):
@@ -106,6 +112,9 @@ with tab3:
         st.info("No numeric columns available for histogram.")
     else:
         hist_col = st.selectbox("Select a numeric column", numeric_cols, key="hist_col")
+        if st.button("Plot Histogram", key="plot_histogram"):
+            st.session_state["hist_ready"] = True
+        if st.session_state.get("hist_ready"):
         if st.button("Plot Histogram"):
             plot_histogram(df, hist_col)
             hist_series = df[hist_col].dropna()
@@ -118,6 +127,7 @@ with tab3:
                 "max": float(hist_series.max()) if not hist_series.empty else None,
                 "std": float(hist_series.std()) if not hist_series.empty else None,
             }
+            render_insight_button("Histogram", hist_context, "interpret_histogram")
             render_insight_button("Histogram", hist_context)
 
     st.markdown("---")
@@ -128,6 +138,9 @@ with tab3:
         st.info("No categorical columns available for pie charts.")
     else:
         pie_col = st.selectbox("Select a categorical column", categorical_cols, key="pie_col")
+        if st.button("Plot Pie Chart", key="plot_pie"):
+            st.session_state["pie_ready"] = True
+        if st.session_state.get("pie_ready"):
         if st.button("Plot Pie Chart"):
             plot_pie(df, pie_col)
             counts = df[pie_col].value_counts(dropna=False)
@@ -137,6 +150,7 @@ with tab3:
                 "top_categories": top_counts.to_dict(),
                 "unique_count": int(counts.shape[0]),
             }
+            render_insight_button("Pie Chart", pie_context, "interpret_pie")
             render_insight_button("Pie Chart", pie_context)
 
     st.markdown("---")
@@ -149,6 +163,9 @@ with tab3:
         column_cat = st.selectbox("Category column", categorical_cols, key="column_cat")
         column_num = st.selectbox("Numeric column", numeric_cols, key="column_num")
         column_agg = st.selectbox("Aggregation", ["mean", "sum", "median", "count"], key="column_agg")
+        if st.button("Plot Column Chart", key="plot_column"):
+            st.session_state["column_ready"] = True
+        if st.session_state.get("column_ready"):
         if st.button("Plot Column Chart"):
             plot_column_chart(df, column_cat, column_num, column_agg)
             grouped = df.groupby(column_cat)[column_num].agg(column_agg).sort_values(ascending=False)
@@ -158,6 +175,7 @@ with tab3:
                 "aggregation": column_agg,
                 "top_categories": grouped.head(5).to_dict(),
             }
+            render_insight_button("Column Chart", column_context, "interpret_column")
             render_insight_button("Column Chart", column_context)
 
     st.markdown("---")
@@ -172,6 +190,9 @@ with tab3:
             numeric_cols,
             default=numeric_cols[:5]
         )
+        if st.button("Plot Heatmap", key="plot_corr_heatmap"):
+            st.session_state["corr_heat_ready"] = True
+        if st.session_state.get("corr_heat_ready"):
         if st.button("Plot Heatmap"):
             plot_corr_heatmap(df, heat_cols)
             if len(heat_cols) > 1:
@@ -180,6 +201,41 @@ with tab3:
                     "columns": heat_cols,
                     "correlations": corr.round(3).to_dict(),
                 }
+                render_insight_button("Correlation Heatmap", corr_context, "interpret_corr_heatmap")
+
+    st.markdown("---")
+
+    # ---------- CATEGORY VS NUMERIC HEATMAP ----------
+    st.markdown("### Category vs Numeric Heatmap")
+    if not categorical_cols or not numeric_cols:
+        st.info("Need both categorical and numeric columns for category heatmaps.")
+    else:
+        cat_heat_cat = st.selectbox("Category column", categorical_cols, key="cat_heat_cat")
+        cat_heat_num = st.selectbox("Numeric column", numeric_cols, key="cat_heat_num")
+        cat_heat_agg = st.selectbox(
+            "Aggregation",
+            ["mean", "sum", "median", "count"],
+            key="cat_heat_agg"
+        )
+        if st.button("Plot Category Heatmap", key="plot_cat_heatmap"):
+            st.session_state["cat_heat_ready"] = True
+        if st.session_state.get("cat_heat_ready"):
+            plot_category_numeric_heatmap(df, cat_heat_cat, cat_heat_num, cat_heat_agg)
+            grouped = df.groupby(cat_heat_cat)[cat_heat_num].agg(cat_heat_agg).sort_values(ascending=False)
+            cat_heat_context = {
+                "category_column": cat_heat_cat,
+                "numeric_column": cat_heat_num,
+                "aggregation": cat_heat_agg,
+                "top_categories": grouped.head(5).to_dict(),
+            }
+            render_insight_button(
+                "Category vs Numeric Heatmap",
+                cat_heat_context,
+                "interpret_cat_heatmap"
+            )
+
+    st.markdown("---")
+
                 render_insight_button("Correlation Heatmap", corr_context)
 
     st.markdown("---")
@@ -220,6 +276,9 @@ with tab3:
             default=numeric_cols[:5],
             key="corr_table_cols"
         )
+        if st.button("Generate Correlation Table", key="plot_corr_table"):
+            st.session_state["corr_table_ready"] = True
+        if st.session_state.get("corr_table_ready"):
         if st.button("Generate Correlation Table"):
             if len(corr_cols) < 2:
                 st.warning("Select at least two numeric columns.")
@@ -237,6 +296,11 @@ with tab3:
                     "columns": corr_cols,
                     "top_correlations": corr_pairs.head(5).to_dict(orient="records"),
                 }
+                render_insight_button(
+                    "Correlation Strength Table",
+                    corr_table_context,
+                    "interpret_corr_table"
+                )
                 render_insight_button("Correlation Strength Table", corr_table_context)
 
 
