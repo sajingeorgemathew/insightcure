@@ -77,7 +77,7 @@ def render_time_series(df: pd.DataFrame, target: str):
             )
 
             apply_dark_style(fig)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
     except Exception:
         pass
@@ -122,7 +122,7 @@ def render_model_visuals(model_state: dict):
         )
 
         apply_dark_style(fig)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
     # ---------------------------
     # Classification: Confusion Matrix
@@ -150,7 +150,7 @@ def render_model_visuals(model_state: dict):
         )
 
         apply_dark_style(fig)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
     # ======================================================
     # PERMUTATION FEATURE IMPORTANCE
@@ -182,7 +182,7 @@ def render_model_visuals(model_state: dict):
         apply_dark_style(fig)
         fig.update_layout(height=500)
 
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
     except Exception as e:
         st.warning(f"Could not compute feature importance: {e}")
@@ -219,7 +219,7 @@ def render_mutual_information(df: pd.DataFrame, model_state: dict):
     )
 
     apply_dark_style(fig)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 
 # ======================================================

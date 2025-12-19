@@ -1,4 +1,5 @@
 import streamlit as st
+import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
@@ -29,7 +30,7 @@ def plot_histogram(df, column):
         template="plotly_dark",
     )
     apply_dark_style(fig)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 
 # ============================================
@@ -44,23 +45,7 @@ def plot_boxplot(df, column):
         template="plotly_dark",
     )
     apply_dark_style(fig)
-    st.plotly_chart(fig, use_container_width=True)
-
-
-# ============================================
-# SCATTER
-# ============================================
-def plot_scatter(df, x, y):
-    fig = px.scatter(
-        df,
-        x=x,
-        y=y,
-        trendline="ols",
-        title=f"Scatter Plot: {x} vs {y}",
-        template="plotly_dark",
-    )
-    apply_dark_style(fig)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 
 # ============================================
@@ -90,7 +75,36 @@ def plot_corr_heatmap(df, cols):
         title_font_color="white",
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
+
+
+# ============================================
+# CATEGORY VS NUMERIC HEATMAP
+# ============================================
+def plot_category_numeric_heatmap(df, category_col, numeric_col, agg_func):
+    grouped = df.groupby(category_col)[numeric_col].agg(agg_func).reset_index()
+    grouped = grouped.sort_values(numeric_col, ascending=False)
+
+    fig = go.Figure(
+        data=go.Heatmap(
+            z=[grouped[numeric_col]],
+            x=grouped[category_col],
+            y=[f"{agg_func} of {numeric_col}"],
+            colorscale="Viridis",
+        )
+    )
+
+    fig.update_layout(
+        title=f"{agg_func.title()} {numeric_col} by {category_col}",
+        template="plotly_dark",
+        height=300,
+        plot_bgcolor="rgba(30,30,30,1)",
+        paper_bgcolor="rgba(30,30,30,1)",
+        font_color="white",
+        title_font_color="white",
+    )
+
+    st.plotly_chart(fig, width="stretch")
 
 
 # ============================================
@@ -112,26 +126,44 @@ def plot_bar(df, column):
     fig.update_traces(textposition="outside")
     apply_dark_style(fig)
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 
 # ============================================
-# PAIRPLOT
+# PIE CHART
 # ============================================
-def plot_pairplot(df, cols):
-    if len(cols) < 2:
-        st.warning("Select at least two columns for pairplot.")
-        return
+def plot_pie(df, column, top_n=8):
+    counts = df[column].value_counts(dropna=False)
+    if len(counts) > top_n:
+        top_counts = counts.head(top_n)
+        other_count = counts.iloc[top_n:].sum()
+        counts = pd.concat(
+            [top_counts, pd.Series({"Other": other_count})]
+        )
 
-    fig = px.scatter_matrix(
-        df[cols],
-        dimensions=cols,
-        title="Scatter Matrix (Pairplot Alternative)",
+    fig = px.pie(
+        values=counts.values,
+        names=counts.index.astype(str),
+        title=f"Distribution of {column}",
         template="plotly_dark",
     )
-
-    fig.update_traces(diagonal_visible=False)
-    fig.update_layout(height=800)
     apply_dark_style(fig)
+    st.plotly_chart(fig, width="stretch")
 
-    st.plotly_chart(fig, use_container_width=True)
+
+# ============================================
+# COLUMN CHART (AGGREGATED)
+# ============================================
+def plot_column_chart(df, category_col, numeric_col, agg_func):
+    grouped = df.groupby(category_col)[numeric_col].agg(agg_func).reset_index()
+    grouped = grouped.sort_values(numeric_col, ascending=False)
+
+    fig = px.bar(
+        grouped,
+        x=category_col,
+        y=numeric_col,
+        title=f"{agg_func.title()} {numeric_col} by {category_col}",
+        template="plotly_dark",
+    )
+    apply_dark_style(fig)
+    st.plotly_chart(fig, width="stretch")
