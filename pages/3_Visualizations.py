@@ -105,6 +105,22 @@ with tab3:
     numeric_cols = df.select_dtypes(include="number").columns.tolist()
     categorical_cols = df.select_dtypes(include="object").columns.tolist()
 
+    def render_insight_button(chart_label, context_payload, button_key):
+        if st.button(f"Interpret {chart_label}", key=button_key):
+    def render_insight_button(chart_label, context_payload):
+        if st.button(f"Interpret {chart_label}"):
+            with st.spinner("Generating interpretation..."):
+                insight = generate_insight(
+                    task_type=ms.get("task_type", "unknown"),
+                    target=ms.get("target", "unknown"),
+                    metrics=ms.get("metrics", {}),
+                    dataset_name=ms.get("dataset_name", "Dataset"),
+                    chart=chart_label,
+                    context=context_payload,
+                )
+            st.markdown("**AI Interpretation**")
+            st.write(insight)
+
     # ---------- HISTOGRAM ----------
     st.markdown("### Histogram")
     if not numeric_cols:
